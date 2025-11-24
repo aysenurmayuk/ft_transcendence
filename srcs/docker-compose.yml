@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    volumes:
+      - ./app/src:/usr/src/app/src
+      - ./app/public:/usr/src/app/public
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=sqlite:///data/database.db
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./app/public:/usr/share/nginx/html
+      - ./nginx/ssl:/etc/ssl/certs
+    depends_on:
+      - app
+
+  db:
+    image: nouchka/sqlite3
+    volumes:
+      - ./data:/data
+    environment:
+      - SQLITE_DATABASE=/data/database.db
+
+networks:
+  default:
+    driver: bridge

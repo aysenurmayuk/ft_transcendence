@@ -1,20 +1,26 @@
-import { Server } from 'socket.io';
+import { FastifyInstance } from 'fastify';
 
-const io = new Server();
+/**
+ * WebSocket handlers
+ * This file is a placeholder for future WebSocket functionality
+ */
+export async function setupWebSocket(fastify: FastifyInstance) {
+  fastify.get('/ws', { websocket: true }, (connection, _request) => {
+    console.log('WebSocket client connected');
 
-io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
-
-    socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
+    connection.socket.on('message', (message: Buffer) => {
+      const msg = message.toString();
+      console.log('Message received:', msg);
+      
+      // Echo back to client
+      connection.socket.send(JSON.stringify({
+        type: 'echo',
+        data: msg,
+      }));
     });
 
-    socket.on('message', (msg) => {
-        console.log('Message received:', msg);
-        io.emit('message', msg); // Broadcast the message to all connected clients
+    connection.socket.on('close', () => {
+      console.log('WebSocket client disconnected');
     });
-
-    // Additional event handlers can be added here
-});
-
-export default io;
+  });
+}

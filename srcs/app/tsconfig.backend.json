@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": "./src",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "paths": {
+      "*": ["node_modules/*", "*"]
+    },
+    "types": ["node"]
+  },
+  "include": ["src/server.ts", "src/db/**/*", "src/routes/**/*", "src/middleware/**/*", "src/utils/**/*", "src/types/**/*", "src/game/**/*", "src/websocket/**/*"],
+  "exclude": ["node_modules", "src/frontend", "**/*.spec.ts"]
+}

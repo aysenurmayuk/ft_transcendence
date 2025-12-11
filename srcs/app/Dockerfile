@@ -13,13 +13,18 @@ COPY package*.json ./
 RUN npm install && \
     npm cache clean --force
 
-# Copy tsconfig for build
-COPY tsconfig.json ./
+# Copy tsconfig files for build
+COPY tsconfig*.json ./
+COPY tailwind.config.js ./
 
 # Copy source code
 COPY src ./src
 
-# Build the TypeScript code
+# Create fresh public directory structure for build output
+RUN mkdir -p ./public && rm -rf ./public/js ./public/css && mkdir -p ./public/js ./public/css
+COPY public/index.html ./public/
+
+# Build the TypeScript code (backend + frontend + CSS)
 RUN npm run build
 
 # Remove dev dependencies after build

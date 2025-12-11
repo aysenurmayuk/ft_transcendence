@@ -1,12 +1,14 @@
-import { Router } from 'express';
+import { FastifyInstance } from 'fastify';
 
-const router = Router();
-
-// An example route for the home page
-router.get('/', (req, res) => {
-    res.send('Welcome to the Pong Game API!');
-});
-
-// Add more routes here as needed
-
-export default router;
+/**
+ * Root API routes
+ * This file is a placeholder for future API routes
+ */
+export default async function rootRoutes(fastify: FastifyInstance) {
+  fastify.get('/', async (_request, reply) => {
+    return reply.send({
+      message: 'Welcome to the Pong Game API!',
+      version: '1.0.0',
+    });
+  });
+}

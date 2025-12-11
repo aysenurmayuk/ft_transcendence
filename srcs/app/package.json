@@ -5,25 +5,35 @@
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
-    "build": "tsc",
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts"
+    "build": "npm run build:backend && npm run build:frontend && npm run fix-imports && npm run build:css",
+    "build:backend": "tsc -p tsconfig.backend.json",
+    "build:frontend": "tsc -p tsconfig.frontend.json",
+    "fix-imports": "for file in public/js/*.js; do sed -i \"s|from '\\./\\([^']*\\)'|from './\\1.js'|g; s|\\.js\\.js|.js|g\" \"$file\"; done",
+    "build:css": "tailwindcss -i ./src/frontend/styles.css -o ./public/css/styles.css --minify",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev:css": "tailwindcss -i ./src/frontend/styles.css -o ./public/css/styles.css --watch"
   },
   "dependencies": {
     "fastify": "^4.25.0",
     "@fastify/websocket": "^9.0.0",
     "@fastify/static": "^6.12.0",
     "@fastify/cors": "^8.5.0",
-    "sqlite3": "^5.1.6",
-    "sqlite": "^5.1.1",
-    "express": "^4.18.2",
-    "socket.io": "^4.6.0"
+    "@fastify/cookie": "^9.2.0",
+    "@fastify/session": "^10.7.0",
+    "better-sqlite3": "^9.2.2",
+    "bcryptjs": "^2.4.3",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "typescript": "^5.3.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "@types/node": "^20.10.0",
-    "@types/express": "^4.17.21"
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/bcryptjs": "^2.4.6",
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32"
   },
   "license": "MIT"
 }

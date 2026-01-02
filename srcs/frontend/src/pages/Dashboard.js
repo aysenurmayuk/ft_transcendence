@@ -84,6 +84,11 @@ const Dashboard = () => {
 	useEffect(() => {
 		if (chatOpen && selectedEnv) {
 			const token = localStorage.getItem('token');
+			if (!token) {
+				alert("Authentication token missing. Please login again.");
+				return;
+			}
+
 			if (ws.current) ws.current.close();
 
 			const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -340,7 +345,13 @@ const Dashboard = () => {
 							}}>
 								<div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
 									<span style={{ fontSize: '18px' }}>💬</span>
-									<h2 style={{ fontSize: '16px', fontWeight: 600, color: '#fff' }}>Team Chat</h2>
+									<div>
+										<h2 style={{ fontSize: '16px', fontWeight: 600, color: '#fff' }}>Team Chat</h2>
+										<div style={{ fontSize: '10px', color: '#94a3b8', fontFamily: 'monospace' }}>
+											Status: {ws.current ? ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][ws.current.readyState] : 'NULL'} |
+											Env: {JSON.stringify(selectedEnv?.id)}
+										</div>
+									</div>
 								</div>
 								<button onClick={() => setChatOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '20px' }}>
 									&times;

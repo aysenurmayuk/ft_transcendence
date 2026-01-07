@@ -216,7 +216,12 @@ class ProfileView(viewsets.ViewSet):
             user.save()
             
             # Update Profile Avatar
-            if 'avatar' in request.FILES:
+            if 'remove_avatar' in request.data and request.data['remove_avatar'] == 'true':
+                 profile, created = UserProfile.objects.get_or_create(user=user)
+                 profile.avatar.delete(save=False)
+                 profile.avatar = None
+                 profile.save()
+            elif 'avatar' in request.FILES:
                 profile, created = UserProfile.objects.get_or_create(user=user)
                 profile.avatar = request.FILES['avatar']
                 profile.save()

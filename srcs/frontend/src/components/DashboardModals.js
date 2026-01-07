@@ -207,7 +207,42 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess 
 };
 
 export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelete }) => {
+	const [isEditing, setIsEditing] = useState(false);
+	const [editTitle, setEditTitle] = useState('');
+	const [editDescription, setEditDescription] = useState('');
+
+	React.useEffect(() => {
+		if (task) {
+			setEditTitle(task.title);
+			setEditDescription(task.description);
+			setIsEditing(false);
+		}
+	}, [task, isOpen]);
+
 	if (!task) return null;
+
+	const handleSave = async () => {
+		const token = localStorage.getItem('token');
+		try {
+			const res = await fetch(`/api/tasks/${task.id}/`, {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Token ${token}`
+				},
+				body: JSON.stringify({
+					title: editTitle,
+					description: editDescription
+				})
+			});
+			if (res.ok) {
+				onUpdate();
+				setIsEditing(false);
+			} else {
+				alert('Failed to update task');
+			}
+		} catch (e) { console.error(e); }
+	};
 
 	const toggleChecklistItem = async (itemId) => {
 		const token = localStorage.getItem('token');
@@ -245,61 +280,108 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 	const canComplete = task.task_type === 'assignment' && task.status !== 'done' && (!task.assigned_to || task.assigned_to.id === user.id);
 	// Determine if user can delete (Creator only)
 	const canDelete = task.created_by.id === user.id;
+	const canEdit = task.created_by.id === user.id;
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} title={task.title}>
+		<Modal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Edit Item' : task.title}>
 			<div style={{ marginBottom: '20px' }}>
-				<div style={{ display: 'inline-block', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', background: 'rgba(255,255,255,0.1)', color: '#cbd5e1', marginBottom: '12px', textTransform: 'capitalize' }}>
-					{task.task_type} • {task.status.replace('_', ' ')}
-				</div>
-
-				{task.task_type === 'checklist' ? (
-					<div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-						{task.checklist_items && task.checklist_items.map(item => (
-							<div key={item.id} onClick={() => toggleChecklistItem(item.id)} style={{
-								display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer',
-								padding: '8px', borderRadius: '6px', background: 'rgba(255,255,255,0.02)',
-								opacity: item.is_checked ? 0.5 : 1
-							}}>
-								<div style={{
-									width: '20px', height: '20px', borderRadius: '4px', border: '2px solid #64748b',
-									display: 'grid', placeItems: 'center', background: item.is_checked ? '#64748b' : 'transparent', flexShrink: 0
-								}}>
-									{item.is_checked && <span style={{ fontSize: '14px', color: '#fff' }}>✓</span>}
-								</div>
-								<span style={{ fontSize: '15px', color: '#cbd5e1', textDecoration: item.is_checked ? 'line-through' : 'none' }}>{item.content}</span>
+				{isEditing ? (
+					<div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '12px' }}>
+						<div>
+							<label style={{ fontSize: '12px', color: '#94a3b8' }}>Title</label>
+							<input
+								className="glass-input"
+								value={editTitle}
+								onChange={e => setEditTitle(e.target.value)}
+							/>
+						</div>
+						{task.task_type !== 'checklist' && (
+							<div>
+								<label style={{ fontSize: '12px', color: '#94a3b8' }}>{task.task_type === 'note' ? 'Content' : 'Description'}</label>
+								<textarea
+									className="glass-input"
+									rows="5"
+									value={editDescription}
+									onChange={e => setEditDescription(e.target.value)}
+									style={{ resize: 'vertical' }}
+								/>
 							</div>
-						))}
+						)}
 					</div>
 				) : (
-					<div style={{ whiteSpace: 'pre-wrap', color: '#e2e8f0', lineHeight: '1.5' }}>
-						{task.description || <em style={{ color: '#64748b' }}>No details provided.</em>}
-					</div>
+					<>
+						<div style={{ display: 'inline-block', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', background: 'rgba(255,255,255,0.1)', color: '#cbd5e1', marginBottom: '12px', textTransform: 'capitalize' }}>
+							{task.task_type} • {task.status.replace('_', ' ')}
+						</div>
+						{task.task_type === 'checklist' ? (
+							<div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+								{task.checklist_items && task.checklist_items.map(item => (
+									<div key={item.id} onClick={() => toggleChecklistItem(item.id)} style={{
+										display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer',
+										padding: '8px', borderRadius: '6px', background: 'rgba(255,255,255,0.02)',
+										opacity: item.is_checked ? 0.5 : 1
+									}}>
+										<div style={{
+											width: '20px', height: '20px', borderRadius: '4px', border: '2px solid #64748b',
+											display: 'grid', placeItems: 'center', background: item.is_checked ? '#64748b' : 'transparent', flexShrink: 0
+										}}>
+											{item.is_checked && <span style={{ fontSize: '14px', color: '#fff' }}>✓</span>}
+										</div>
+										<span style={{ fontSize: '15px', color: '#cbd5e1', textDecoration: item.is_checked ? 'line-through' : 'none' }}>{item.content}</span>
+									</div>
+								))}
+							</div>
+						) : (
+							<div style={{ whiteSpace: 'pre-wrap', color: '#e2e8f0', lineHeight: '1.5' }}>
+								{task.description || <em style={{ color: '#64748b' }}>No details provided.</em>}
+							</div>
+						)}
+					</>
 				)}
 			</div>
 
 			<div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-				<div>
-					{task.task_type === 'assignment' && (
-						<div style={{ fontSize: '13px', color: '#94a3b8' }}>
-							Assigned to: <span style={{ color: '#fff' }}>{task.assigned_to ? task.assigned_to.username : 'Everyone'}</span>
+				{!isEditing && (
+					<div>
+						{task.task_type === 'assignment' && (
+							<div style={{ fontSize: '13px', color: '#94a3b8' }}>
+								Assigned to: <span style={{ color: '#fff' }}>{task.assigned_to ? task.assigned_to.username : 'Everyone'}</span>
+							</div>
+						)}
+						<div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+							Created by {task.created_by.username}
 						</div>
-					)}
-					<div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-						Created by {task.created_by.username}
 					</div>
-				</div>
+				)}
 
-				<div style={{ display: 'flex', gap: '10px' }}>
-					{canDelete && (
-						<button onClick={() => { if (window.confirm('Delete this task?')) onDelete(task.id); }} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>
-							Delete
-						</button>
-					)}
-					{canComplete && (
-						<button onClick={completeTask} className="primary-btn" style={{ padding: '8px 16px', fontSize: '14px' }}>
-							Complete
-						</button>
+				<div style={{ display: 'flex', gap: '10px', marginLeft: 'auto' }}>
+					{isEditing ? (
+						<>
+							<button onClick={() => setIsEditing(false)} style={{ background: 'transparent', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.2)', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>
+								Cancel
+							</button>
+							<button onClick={handleSave} className="primary-btn" style={{ padding: '8px 16px' }}>
+								Save
+							</button>
+						</>
+					) : (
+						<>
+							{canEdit && (
+								<button onClick={() => setIsEditing(true)} style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>
+									Edit
+								</button>
+							)}
+							{canDelete && (
+								<button onClick={() => { if (window.confirm('Delete this task?')) onDelete(task.id); }} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>
+									Delete
+								</button>
+							)}
+							{canComplete && (
+								<button onClick={completeTask} className="primary-btn" style={{ padding: '8px 16px', fontSize: '14px' }}>
+									Complete
+								</button>
+							)}
+						</>
 					)}
 				</div>
 			</div>

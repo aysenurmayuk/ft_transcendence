@@ -223,6 +223,7 @@ const Dashboard = () => {
 		formData.append('email', profileData.email);
 		if (profileData.password) formData.append('password', profileData.password);
 		if (profileData.avatar) formData.append('avatar', profileData.avatar);
+		if (profileData.removeAvatar) formData.append('remove_avatar', 'true');
 
 		try {
 			const res = await fetch('/api/profile/me/', {
@@ -477,6 +478,16 @@ const Dashboard = () => {
 								<input id="avatar-upload" type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
 							</label>
 						</div>
+						{profileData.avatarUrl && (
+							<button
+								type="button"
+								onClick={() => {
+									setProfileData({ ...profileData, avatar: null, avatarUrl: '', removeAvatar: true });
+								}}
+								style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', alignSelf: 'center', marginTop: '10px' }}>
+								Remove Avatar
+							</button>
+						)}
 						<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
 							<label style={{ fontSize: '13px', color: '#94a3b8' }}>Username</label>
 							<input className="glass-input" type="text" value={profileData.username} onChange={e => setProfileData({ ...profileData, username: e.target.value })} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none' }} />

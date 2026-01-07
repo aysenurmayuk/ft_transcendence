@@ -42,6 +42,15 @@ class TaskSerializer(serializers.ModelSerializer):
             ChecklistItem.objects.create(task=task, **item_data)
         return task
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        items = representation.get('checklist_items', [])
+        if items:
+            # Sort by is_checked (False < True) and then by id
+            sorted_items = sorted(items, key=lambda x: (x['is_checked'], x['id']))
+            representation['checklist_items'] = sorted_items
+        return representation
+
 class CircleSerializer(serializers.ModelSerializer):
     member_count = serializers.SerializerMethodField()
     members = UserSerializer(many=True, read_only=True)

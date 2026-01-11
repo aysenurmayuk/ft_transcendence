@@ -22,6 +22,8 @@ const Dashboard = () => {
 	const [showTaskDetail, setShowTaskDetail] = useState(false);
 
 	// Chat States
+	const [activeChatMode, setActiveChatMode] = useState('circle'); // 'circle' or 'dm'
+	const [dmTarget, setDmTarget] = useState(null); // User object we are chatting with
 	const [messages, setMessages] = useState([]);
 	const [chatInput, setChatInput] = useState('');
 	const [isConnected, setIsConnected] = useState(false);
@@ -128,13 +130,28 @@ const Dashboard = () => {
 		} catch (e) { console.error(e); }
 	};
 
+	const fetchDMMessages = async (targetId) => {
+		const token = localStorage.getItem('token');
+		if (!token) return;
+		try {
+			const res = await fetch(`/api/direct-messages/?target_id=${targetId}`, {
+				headers: { 'Authorization': `Token ${token}` }
+			});
+			if (res.ok) {
+				const data = await res.json();
+				setMessages(data);
+				scrollToBottom();
+			}
+		} catch (e) { console.error(e); }
+	};
+
 	const scrollToBottom = () => {
 		messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 	};
 
 	// WebSocket Connection
 	useEffect(() => {
-		if (selectedEnv) {
+		if ((activeChatMode === 'circle' && selectedEnv) || (activeChatMode === 'dm' && dmTarget)) {
 			const token = localStorage.getItem('token');
 			if (!token) {
 				alert("Authentication token missing. Please login again.");
@@ -142,8 +159,16 @@ const Dashboard = () => {
 			}
 			if (ws.current) ws.current.close();
 
+			setMessages([]); // Clear messages on switch
+
 			const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-			const wsUrl = `${protocol}//${window.location.host}/ws/chat/${selectedEnv.id}/?token=${token}`;
+			let wsUrl = '';
+
+			if (activeChatMode === 'circle') {
+				wsUrl = `${protocol}//${window.location.host}/ws/chat/${selectedEnv.id}/?token=${token}`;
+			} else {
+				wsUrl = `${protocol}//${window.location.host}/ws/chat/dm/${dmTarget.id}/?token=${token}`;
+			}
 
 			ws.current = new WebSocket(wsUrl);
 
@@ -174,7 +199,12 @@ const Dashboard = () => {
 				console.error("WS Error", e);
 			};
 
-			fetchMessages(selectedEnv.id);
+			// Initial fetch based on mode
+			if (activeChatMode === 'circle') {
+				fetchMessages(selectedEnv.id);
+			} else {
+				fetchDMMessages(dmTarget.id);
+			}
 
 			return () => {
 				if (ws.current) {
@@ -184,7 +214,7 @@ const Dashboard = () => {
 				}
 			};
 		}
-	}, [selectedEnv]);
+	}, [selectedEnv, activeChatMode, dmTarget]);
 
 	useEffect(() => {
 		if (selectedEnv) {
@@ -200,9 +230,23 @@ const Dashboard = () => {
 		if (!chatInput.trim() || !isConnected || !ws.current) return;
 		ws.current.send(JSON.stringify({
 			message: chatInput,
-			sender_id: user.id
+			sender_id: user.id,
+			target_id: activeChatMode === 'dm' ? dmTarget.id : undefined
 		}));
 		setChatInput('');
+	};
+
+	const startDM = (targetUser) => {
+		if (targetUser.id === user.id) return; // Can't chat with self
+		setDmTarget(targetUser);
+		setActiveChatMode('dm');
+		setChatOpen(true);
+		setSettingsOpen(false);
+	};
+
+	const returnToTeamChat = () => {
+		setActiveChatMode('circle');
+		setDmTarget(null);
 	};
 
 	const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
@@ -367,8 +411,10 @@ const Dashboard = () => {
 												style={{
 													marginLeft: i > 0 ? '-12px' : '0',
 													zIndex: 10 - i,
-													background: member.avatar ? 'transparent' : color
-												}}>
+													background: member.avatar ? 'transparent' : color,
+													cursor: member.id !== user.id ? 'pointer' : 'default'
+												}}
+												onClick={() => startDM(member)}>
 												{member.avatar ?
 													<img src={member.avatar} alt={member.username} /> :
 													member.username.charAt(0).toUpperCase()
@@ -508,8 +554,15 @@ const Dashboard = () => {
 				<div className={`chat-sidebar ${chatOpen ? 'open' : ''}`}>
 					<div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)' }}>
 						<div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-							<span style={{ fontSize: '18px' }}>💬</span>
-							<h2 style={{ fontSize: '16px', fontWeight: 600, color: '#fff' }}>Team Chat</h2>
+							{activeChatMode === 'dm' && (
+								<button onClick={returnToTeamChat} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', marginRight: '4px' }}>
+									←
+								</button>
+							)}
+							<span style={{ fontSize: '18px' }}>{activeChatMode === 'dm' ? '👤' : '💬'}</span>
+							<h2 style={{ fontSize: '16px', fontWeight: 600, color: '#fff' }}>
+								{activeChatMode === 'dm' ? (dmTarget ? dmTarget.username : 'Chat') : 'Team Chat'}
+							</h2>
 						</div>
 						<button onClick={() => setChatOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '20px' }}>&times;</button>
 					</div>
@@ -531,7 +584,9 @@ const Dashboard = () => {
 									</div>
 								</div>
 							);
-						}) : <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>Select a circle to chat</div>}
+						}) : <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+							{activeChatMode === 'dm' ? 'Start a conversation' : 'Select a circle to chat'}
+						</div>}
 						<div ref={messagesEndRef} />
 					</div>
 

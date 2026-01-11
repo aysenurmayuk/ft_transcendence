@@ -64,5 +64,16 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     
+
     def __str__(self):
         return self.user.username
+
+class DirectMessage(models.Model):
+    sender = models.ForeignKey(User, related_name='sent_direct_messages', on_delete=models.CASCADE)
+    receiver = models.ForeignKey(User, related_name='received_direct_messages', on_delete=models.CASCADE)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['timestamp']

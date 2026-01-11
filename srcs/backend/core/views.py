@@ -5,8 +5,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import generics
 from django.contrib.auth.models import User
-from .models import Circle, Task, Message, ChecklistItem
-from .serializers import CircleSerializer, CircleDetailSerializer, UserSerializer, TaskSerializer, MessageSerializer
+from django.db.models import Q
+from .models import Circle, Task, Message, ChecklistItem, DirectMessage
+from .serializers import CircleSerializer, CircleDetailSerializer, UserSerializer, TaskSerializer, MessageSerializer, DirectMessageSerializer
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 
@@ -190,6 +191,21 @@ class MessageViewSet(viewsets.ReadOnlyModelViewSet):
         if not circle_id:
             return Message.objects.none()
         return Message.objects.filter(circle_id=circle_id)
+
+class DirectMessageViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = DirectMessageSerializer
+
+    def get_queryset(self):
+        target_id = self.request.query_params.get('target_id')
+        if not target_id:
+            return DirectMessage.objects.none()
+        
+        user = self.request.user
+        return DirectMessage.objects.filter(
+            (Q(sender=user) & Q(receiver_id=target_id)) |
+            (Q(sender_id=target_id) & Q(receiver=user))
+        )
 
 from .models import UserProfile
 from rest_framework.parsers import MultiPartParser, FormParser

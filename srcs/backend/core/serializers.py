@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Circle, UserProfile, Task, Message, ChecklistItem
+from .models import Circle, UserProfile, Task, Message, ChecklistItem, DirectMessage
 
 class UserSerializer(serializers.ModelSerializer):
     avatar = serializers.SerializerMethodField()
@@ -77,3 +77,11 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = ['id', 'content', 'timestamp', 'sender', 'circle']
 
+
+class DirectMessageSerializer(serializers.ModelSerializer):
+    sender = UserSerializer(read_only=True)
+    receiver = UserSerializer(read_only=True)
+
+    class Meta:
+        model = DirectMessage
+        fields = ['id', 'content', 'timestamp', 'sender', 'receiver', 'is_read']

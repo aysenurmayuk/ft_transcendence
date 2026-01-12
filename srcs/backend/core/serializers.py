@@ -4,18 +4,27 @@ from .models import Circle, UserProfile, Task, Message, ChecklistItem, DirectMes
 
 class UserSerializer(serializers.ModelSerializer):
     avatar = serializers.SerializerMethodField()
+    is_online = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'avatar']
+        fields = ['id', 'username', 'email', 'avatar', 'is_online']
 
     def get_avatar(self, obj):
         try:
-            if hasattr(obj, 'userprofile') and obj.userprofile.avatar:
-                return obj.userprofile.avatar.url
+            if hasattr(obj, 'profile') and obj.profile.avatar:
+                return obj.profile.avatar.url
         except:
             pass
         return None
+
+    def get_is_online(self, obj):
+        try:
+            if hasattr(obj, 'profile'):
+                return obj.profile.is_online
+        except:
+            pass
+        return False
 
 class ChecklistItemSerializer(serializers.ModelSerializer):
     class Meta:
@@ -54,21 +63,23 @@ class TaskSerializer(serializers.ModelSerializer):
 class CircleSerializer(serializers.ModelSerializer):
     member_count = serializers.SerializerMethodField()
     members = UserSerializer(many=True, read_only=True)
+    admin = UserSerializer(read_only=True)
     
     class Meta:
         model = Circle
-        fields = ['id', 'name', 'description', 'created_at', 'member_count', 'invite_code', 'members']
-        read_only_fields = ['invite_code']
+        fields = ['id', 'name', 'description', 'created_at', 'member_count', 'invite_code', 'members', 'admin']
+        read_only_fields = ['invite_code', 'admin']
         
     def get_member_count(self, obj):
         return obj.members.count()
 
 class CircleDetailSerializer(serializers.ModelSerializer):
     members = UserSerializer(many=True, read_only=True)
+    admin = UserSerializer(read_only=True)
     
     class Meta:
         model = Circle
-        fields = ['id', 'name', 'description', 'created_at', 'members', 'invite_code']
+        fields = ['id', 'name', 'description', 'created_at', 'members', 'invite_code', 'admin']
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)

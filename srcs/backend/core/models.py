@@ -6,6 +6,7 @@ class Circle(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    admin = models.ForeignKey(User, related_name='managed_circles', on_delete=models.CASCADE, null=True, blank=True)
     members = models.ManyToManyField(User, related_name='circles')
     invite_code = models.CharField(max_length=10, unique=True, blank=True)
     
@@ -61,8 +62,9 @@ class Message(models.Model):
 
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    is_online = models.BooleanField(default=False)
     
 
     def __str__(self):

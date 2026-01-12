@@ -21,7 +21,7 @@ class CircleViewSet(viewsets.ModelViewSet):
         return CircleSerializer
 
     def perform_create(self, serializer):
-        circle = serializer.save()
+        circle = serializer.save(admin=self.request.user)
         circle.members.add(self.request.user)
 
     def get_queryset(self):
@@ -52,6 +52,24 @@ class CircleViewSet(viewsets.ModelViewSet):
         circle = self.get_object()
         circle.members.remove(request.user)
         return Response({'status': 'left circle'})
+        
+    @action(detail=True, methods=['post'])
+    def kick_member(self, request, pk=None):
+        circle = self.get_object()
+        member_id = request.data.get('member_id')
+        
+        if circle.admin != request.user:
+             return Response({'error': 'Only admin can kick members'}, status=status.HTTP_403_FORBIDDEN)
+             
+        try:
+            member = User.objects.get(id=member_id)
+            if member == circle.admin:
+                return Response({'error': 'Cannot kick admin'}, status=status.HTTP_400_BAD_REQUEST)
+                
+            circle.members.remove(member)
+            return Response({'status': 'member kicked'})
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
     
     @action(detail=False, methods=['get'])
     def my_circles(self, request):

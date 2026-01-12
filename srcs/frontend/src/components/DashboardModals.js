@@ -50,7 +50,7 @@ export const CreateCircleModal = ({ isOpen, onClose, onSuccess }) => {
 	);
 };
 
-export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess }) => {
+export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess, initialAssignee }) => {
 	const [taskType, setTaskType] = useState('assignment'); // assignment, checklist, note
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
@@ -122,8 +122,10 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess 
 			setTitle('');
 			setDescription('');
 			setChecklistItems([]);
+			if (initialAssignee) setAssignedTo(initialAssignee);
+			else setAssignedTo('');
 		}
-	}, [isOpen]);
+	}, [isOpen, initialAssignee]);
 
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} title="Add New Item">
@@ -464,3 +466,107 @@ export const JoinCircleModal = ({ isOpen, onClose, onSuccess }) => {
 		</Modal>
 	);
 }
+
+export const MembersModal = ({ isOpen, onClose, members, currentUserId, adminId, onKick, circleId, onDM, onAssign, onLeave, onlineUsers }) => {
+	const isAdmin = currentUserId === adminId;
+
+	return (
+		<Modal isOpen={isOpen} onClose={onClose} title="Circle Members">
+			<div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+				{members.map(member => {
+					const isOnline = onlineUsers && onlineUsers.has(Number(member.id));
+					return (
+						<div key={member.id} style={{
+							display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+							padding: '12px', marginBottom: '8px',
+							background: 'rgba(255,255,255,0.05)', borderRadius: '8px',
+							border: member.id === adminId ? '1px solid #6366f1' : 'none'
+						}}>
+							<div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+								<div style={{
+									width: '36px', height: '36px', borderRadius: '50%', background: '#334155',
+									overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
+									position: 'relative'
+								}}>
+									{member.avatar ?
+										<img src={member.avatar} alt={member.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> :
+										<span style={{ fontSize: '14px', color: '#cbd5e1' }}>{member.username.charAt(0).toUpperCase()}</span>
+									}
+									{/* Online Status Indicator */}
+									<div style={{
+										position: 'absolute', bottom: '0', right: '0',
+										width: '10px', height: '10px', borderRadius: '50%',
+										backgroundColor: isOnline ? '#22c55e' : '#ef4444',
+										border: '2px solid #1e293b'
+									}} title={isOnline ? "Online" : "Offline"} />
+								</div>
+								<div>
+									<div style={{ color: '#fff', fontWeight: 500 }}>
+										{member.username}
+										{member.id === currentUserId && <span style={{ color: '#94a3b8', fontWeight: 400, fontSize: '12px' }}> (You)</span>}
+									</div>
+									<div style={{ fontSize: '12px', color: member.id === adminId ? '#818cf8' : '#94a3b8' }}>
+										{member.id === adminId ? 'Admin' : 'Member'}
+									</div>
+								</div>
+							</div>
+
+							<div style={{ display: 'flex', gap: '8px' }}>
+								{member.id === currentUserId && !isAdmin && (
+									<button
+										onClick={() => onLeave(circleId)}
+										style={{
+											background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444',
+											border: '1px solid rgba(239, 68, 68, 0.2)', padding: '6px 12px', borderRadius: '6px',
+											cursor: 'pointer', fontSize: '12px', fontWeight: 600
+										}}
+									>
+										Leave
+									</button>
+								)}
+
+								{member.id !== currentUserId && (
+									<>
+										<button
+											onClick={() => onDM(member)}
+											title="Send Message"
+											style={{
+												background: 'rgba(99, 102, 241, 0.1)', color: '#818cf8',
+												border: 'none', padding: '6px 8px', borderRadius: '6px',
+												cursor: 'pointer', fontSize: '14px'
+											}}
+										>
+											💬
+										</button>
+										<button
+											onClick={() => onAssign(member)}
+											title="Assign Task"
+											style={{
+												background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8',
+												border: 'none', padding: '6px 8px', borderRadius: '6px',
+												cursor: 'pointer', fontSize: '14px'
+											}}
+										>
+											📋
+										</button>
+									</>
+								)}
+								{isAdmin && member.id !== currentUserId && (
+									<button
+										onClick={() => { if (window.confirm(`Kick ${member.username}?`)) onKick(circleId, member.id); }}
+										style={{
+											background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444',
+											border: 'none', padding: '6px 12px', borderRadius: '6px',
+											cursor: 'pointer', fontSize: '12px', fontWeight: 600
+										}}>
+										Kick
+									</button>
+								)}
+							</div>
+						</div>
+					);
+				})}
+			</div>
+		</Modal >
+	);
+};

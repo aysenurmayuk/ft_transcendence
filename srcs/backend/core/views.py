@@ -178,7 +178,13 @@ class RegisterView(generics.CreateAPIView):
         if User.objects.filter(username=username).exists():
             return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
             
+        kvkk_accepted = request.data.get('kvkkAccepted')
+        if not kvkk_accepted or kvkk_accepted == 'false':
+             return Response({'error': 'You must accept the KVKK terms.'}, status=status.HTTP_400_BAD_REQUEST)
+
         user = User.objects.create_user(username=username, email=email, password=password)
+        UserProfile.objects.create(user=user, kvkk_accepted=True)
+
         token, created = Token.objects.get_or_create(user=user)
         
         return Response({

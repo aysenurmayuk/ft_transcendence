@@ -1,0 +1,162 @@
+.sudoku-container {
+	/* min-height: 100vh; Removed for modal */
+	padding: 20px;
+	/* background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); Removed for modal transparency/integration */
+	color: white;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.game-header {
+	text-align: center;
+	margin-bottom: 30px;
+}
+
+.game-header h1 {
+	font-size: 2.5rem;
+	margin-bottom: 10px;
+	background: linear-gradient(45deg, #4facfe, #00f2fe);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+.game-stats {
+	display: flex;
+	gap: 20px;
+	justify-content: center;
+	font-size: 1.1rem;
+	color: #a0a0a0;
+}
+
+.sudoku-board {
+	display: grid;
+	grid-template-columns: repeat(9, 1fr);
+	gap: 1px;
+	background: #4a4a4a;
+	padding: 2px;
+	border: 2px solid #4facfe;
+	border-radius: 4px;
+	max-width: 500px;
+	width: 100%;
+	aspect-ratio: 1;
+}
+
+.cell {
+	background: #1a1a2e;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.5rem;
+	cursor: pointer;
+	transition: all 0.2s;
+	color: #e0e0e0;
+}
+
+.cell:hover {
+	background: #2a2a4e;
+}
+
+.cell.selected {
+	background: rgba(79, 172, 254, 0.3);
+}
+
+.cell.highlighted {
+	background: rgba(79, 172, 254, 0.1);
+}
+
+.cell.initial {
+	font-weight: bold;
+	color: #4facfe;
+}
+
+.cell.error {
+	color: #ff4d4f;
+	background: rgba(255, 77, 79, 0.1);
+}
+
+/* Add thicker borders for 3x3 grids */
+.cell:nth-child(3n) {
+	border-right: 1px solid #4a4a4a;
+}
+
+.cell:nth-child(9n) {
+	border-right: none;
+}
+
+.sudoku-board .cell:nth-child(n+19):nth-child(-n+27),
+.sudoku-board .cell:nth-child(n+46):nth-child(-n+54) {
+	border-bottom: 1px solid #4a4a4a;
+}
+
+/* Override for visual separation of 3x3 blocks */
+.cell:nth-child(3n) {
+	border-right: 2px solid #5a5a5a;
+}
+
+.cell:nth-child(9n) {
+	border-right: none;
+}
+
+.row-separator {
+	grid-column: 1 / -1;
+	height: 2px;
+	background: #5a5a5a;
+}
+
+.controls {
+	margin-top: 30px;
+	display: flex;
+	gap: 20px;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.numpad {
+	display: grid;
+	grid-template-columns: repeat(9, 1fr);
+	gap: 10px;
+	margin-top: 20px;
+	max-width: 500px;
+	width: 100%;
+}
+
+.num-btn {
+	aspect-ratio: 1;
+	background: rgba(255, 255, 255, 0.1);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	border-radius: 8px;
+	color: white;
+	font-size: 1.2rem;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.num-btn:hover {
+	background: rgba(79, 172, 254, 0.2);
+	border-color: #4facfe;
+}
+
+.action-btn {
+	padding: 10px 20px;
+	border-radius: 8px;
+	border: none;
+	font-weight: 600;
+	cursor: pointer;
+	transition: transform 0.2s;
+}
+
+.new-game-btn {
+	background: linear-gradient(45deg, #4facfe, #00f2fe);
+	color: #1a1a2e;
+}
+
+.solve-btn {
+	background: transparent;
+	border: 1px solid #4facfe;
+	color: #4facfe;
+}
+
+.action-btn:hover {
+	transform: translateY(-2px);
+}

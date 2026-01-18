@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreateCircleModal, CreateTaskModal, InviteModal, JoinCircleModal, TaskDetailModal, MembersModal } from '../components/DashboardModals';
+import { CreateCircleModal, CreateTaskModal, InviteModal, JoinCircleModal, TaskDetailModal, MembersModal, SudokuModal } from '../components/DashboardModals';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -46,6 +46,7 @@ const Dashboard = () => {
 	const [showInvite, setShowInvite] = useState(false);
 	const [showJoin, setShowJoin] = useState(false);
 	const [showMembers, setShowMembers] = useState(false);
+	const [showSudoku, setShowSudoku] = useState(false);
 
 	const handleKick = async (circleId, memberId) => {
 		const token = localStorage.getItem('token');
@@ -467,6 +468,10 @@ const Dashboard = () => {
 							<div className="icon">⚙️</div>
 							<div className="label">Settings</div>
 						</div>
+						<div className="nav-item" onClick={() => setShowSudoku(true)}>
+							<div className="icon">🧩</div>
+							<div className="label">Sudoku</div>
+						</div>
 					</nav>
 				</aside>
 
@@ -774,6 +779,7 @@ const Dashboard = () => {
 				onLeave={handleLeaveCircle}
 				onlineUsers={onlineUsers}
 			/>
+			<SudokuModal isOpen={showSudoku} onClose={() => setShowSudoku(false)} circleId={selectedEnv?.id} />
 		</div>
 	);
 };

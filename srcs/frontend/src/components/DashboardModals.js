@@ -570,3 +570,17 @@ export const MembersModal = ({ isOpen, onClose, members, currentUserId, adminId,
 		</Modal >
 	);
 };
+
+// Lazy load Sudoku to avoid circular deps if any, but regular import is fine here
+import Sudoku from '../pages/Sudoku';
+
+export const SudokuModal = ({ isOpen, onClose, circleId }) => {
+	return (
+		<Modal isOpen={isOpen} onClose={onClose} title="Sudoku">
+			{/* Use a wrapper to ensure scrollability if game is tall */}
+			<div style={{ maxHeight: '80vh', overflowY: 'auto', display: 'flex', justifyContent: 'center' }}>
+				<Sudoku circleId={circleId} />
+			</div>
+		</Modal>
+	);
+};

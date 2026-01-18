@@ -10,6 +10,8 @@ const Sudoku = ({ circleId }) => {
 	const [mistakes, setMistakes] = useState(0); // This is local-only for now, arguably could be shared but let's keep it simple
 	const [isSolved, setIsSolved] = useState(false);
 	const [isConnected, setIsConnected] = useState(false);
+	const [gameDifficulty, setGameDifficulty] = useState('easy'); // Difficulty of the active game
+	const [nextDifficulty, setNextDifficulty] = useState('easy'); // Difficulty selected for the next game
 
 	const ws = useRef(null);
 
@@ -36,6 +38,8 @@ const Sudoku = ({ circleId }) => {
 				setInitialBoard(data.initial_board);
 				setSolution(data.solution);
 				setIsSolved(data.is_solved);
+				setGameDifficulty(data.difficulty);
+				setNextDifficulty(data.difficulty); // Sync selector to current game initially
 				// If no game exists/empty board, maybe auto-start one? 
 				// For now let's wait for user to click New Game if empty.
 				if (data.board.length === 0 || (data.board.length > 0 && data.board[0].length === 0)) {
@@ -53,6 +57,8 @@ const Sudoku = ({ circleId }) => {
 				setSolution(data.solution);
 				setIsSolved(false);
 				setMistakes(0); // Reset mistakes on new game
+				setGameDifficulty(data.difficulty);
+				setNextDifficulty(data.difficulty); // Sync selector? Optional, maybe keep user choice. Let's sync to show what everyone is playing.
 			}
 		};
 
@@ -69,7 +75,7 @@ const Sudoku = ({ circleId }) => {
 	const startNewGame = useCallback(() => {
 		if (!isConnected) return;
 
-		const { solved, initial } = sudokuGenerator.generate('easy');
+		const { solved, initial } = sudokuGenerator.generate(nextDifficulty);
 
 		// Send to server
 		ws.current.send(JSON.stringify({
@@ -77,9 +83,9 @@ const Sudoku = ({ circleId }) => {
 			board: initial, // current board starts as initial
 			initial_board: initial,
 			solution: solved,
-			difficulty: 'easy'
+			difficulty: nextDifficulty
 		}));
-	}, [isConnected]);
+	}, [isConnected, nextDifficulty]);
 
 	const handleCellClick = (row, col) => {
 		setSelectedCell({ row, col });
@@ -141,7 +147,7 @@ const Sudoku = ({ circleId }) => {
 				<h1>Sudoku</h1>
 				<div className="game-stats">
 					<span>Mistakes: {mistakes}</span>
-					<span>Difficulty: Easy</span>
+					<span style={{ textTransform: 'capitalize' }}>Difficulty: {gameDifficulty}</span>
 					{!isConnected && <span style={{ color: 'red', marginLeft: '10px' }}>(Disconnected)</span>}
 				</div>
 			</div>
@@ -188,6 +194,25 @@ const Sudoku = ({ circleId }) => {
 			</div>
 
 			<div className="controls">
+				<select
+					value={nextDifficulty}
+					onChange={(e) => setNextDifficulty(e.target.value)}
+					className="difficulty-select"
+					style={{
+						padding: '10px',
+						borderRadius: '8px',
+						border: '1px solid rgba(255,255,255,0.2)',
+						background: 'rgba(255,255,255,0.1)',
+						color: 'white',
+						fontSize: '1rem',
+						cursor: 'pointer',
+						outline: 'none'
+					}}
+				>
+					<option value="easy" style={{ color: 'black' }}>Easy</option>
+					<option value="medium" style={{ color: 'black' }}>Medium</option>
+					<option value="hard" style={{ color: 'black' }}>Hard</option>
+				</select>
 				<button className="action-btn new-game-btn" onClick={startNewGame}>New Game</button>
 			</div>
 		</div>

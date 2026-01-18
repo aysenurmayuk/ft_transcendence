@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreateCircleModal, CreateTaskModal, InviteModal, JoinCircleModal, TaskDetailModal, MembersModal } from '../components/DashboardModals';
+import { CreateCircleModal, CreateTaskModal, InviteModal, JoinCircleModal, TaskDetailModal, MembersModal, SudokuModal } from '../components/DashboardModals';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -39,6 +39,8 @@ const Dashboard = () => {
 		avatar: null, // File object
 		avatarUrl: ''  // Preview URL
 	});
+	const [editingCircleName, setEditingCircleName] = useState('');
+	const [editingDescription, setEditingDescription] = useState('');
 
 	// Modal States
 	const [showCreateCircle, setShowCreateCircle] = useState(false);
@@ -46,6 +48,7 @@ const Dashboard = () => {
 	const [showInvite, setShowInvite] = useState(false);
 	const [showJoin, setShowJoin] = useState(false);
 	const [showMembers, setShowMembers] = useState(false);
+	const [showSudoku, setShowSudoku] = useState(false);
 
 	const handleKick = async (circleId, memberId) => {
 		const token = localStorage.getItem('token');
@@ -358,6 +361,44 @@ const Dashboard = () => {
 		setComboOpen(false);
 	};
 
+	useEffect(() => {
+		if (selectedEnv) {
+			setEditingCircleName(selectedEnv.name);
+			setEditingDescription(selectedEnv.description || '');
+		}
+	}, [selectedEnv]);
+
+	const handleUpdateCircle = async (e) => {
+		e.preventDefault();
+		if (!selectedEnv || !editingCircleName) return;
+
+		const token = localStorage.getItem('token');
+		try {
+			const res = await fetch(`/api/circles/${selectedEnv.id}/`, {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Token ${token}`
+				},
+				body: JSON.stringify({
+					name: editingCircleName,
+					description: editingDescription
+				})
+			});
+
+			if (res.ok) {
+				const updatedCircle = await res.json();
+				setSelectedEnv(updatedCircle);
+				setMyCircles(prev => prev.map(c => c.id === updatedCircle.id ? updatedCircle : c));
+				alert("Circle settings updated!");
+			} else {
+				alert("Failed to update circle name.");
+			}
+		} catch (err) {
+			console.error(err);
+		}
+	};
+
 	const handleUpdateProfile = async (e) => {
 		e.preventDefault();
 		const token = localStorage.getItem('token');
@@ -462,6 +503,10 @@ const Dashboard = () => {
 						<div className={`nav-item ${chatOpen ? 'active' : ''}`} onClick={() => chatOpen ? setChatOpen(false) : openChat()}>
 							<div className="icon">💬</div>
 							<div className="label">Chat</div>
+						</div>
+						<div className="nav-item" onClick={() => setShowSudoku(true)}>
+							<div className="icon">🧩</div>
+							<div className="label">Sudoku</div>
 						</div>
 						<div className={`nav-item ${settingsOpen ? 'active' : ''}`} onClick={() => settingsOpen ? setSettingsOpen(false) : openSettings()}>
 							<div className="icon">⚙️</div>
@@ -672,6 +717,35 @@ const Dashboard = () => {
 							</button>
 						</div>
 					</form>
+
+					{selectedEnv && selectedEnv.admin && selectedEnv.admin.id === user.id && (
+						<div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+							<h2 style={{ fontSize: '18px', fontWeight: 600, color: '#fff', marginBottom: '20px' }}>Circle Settings</h2>
+							<form onSubmit={handleUpdateCircle} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+								<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+									<label style={{ fontSize: '13px', color: '#94a3b8' }}>Circle Name</label>
+									<input
+										className="glass-input"
+										type="text"
+										value={editingCircleName}
+										onChange={e => setEditingCircleName(e.target.value)}
+										style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none' }}
+									/>
+								</div>
+								<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+									<label style={{ fontSize: '13px', color: '#94a3b8' }}>Description</label>
+									<textarea
+										className="glass-input"
+										value={editingDescription}
+										onChange={e => setEditingDescription(e.target.value)}
+										rows={3}
+										style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none', resize: 'vertical' }}
+									/>
+								</div>
+								<button type="submit" className="primary-btn" style={{ justifyContent: 'center' }}>Save Settings</button>
+							</form>
+						</div>
+					)}
 				</div>
 
 				{/* Chat Sidebar */}
@@ -774,6 +848,7 @@ const Dashboard = () => {
 				onLeave={handleLeaveCircle}
 				onlineUsers={onlineUsers}
 			/>
+			<SudokuModal isOpen={showSudoku} onClose={() => setShowSudoku(false)} circleId={selectedEnv?.id} />
 		</div>
 	);
 };

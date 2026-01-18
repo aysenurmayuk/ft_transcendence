@@ -65,6 +65,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     is_online = models.BooleanField(default=False)
+    kvkk_accepted = models.BooleanField(default=False)
     
 
     def __str__(self):
@@ -79,3 +80,15 @@ class DirectMessage(models.Model):
 
     class Meta:
         ordering = ['timestamp']
+
+class SudokuGame(models.Model):
+    circle = models.OneToOneField(Circle, related_name='sudoku_game', on_delete=models.CASCADE)
+    board = models.JSONField(default=list)  # Current 9x9 grid
+    initial_board = models.JSONField(default=list)  # Initial 9x9 grid
+    solution = models.JSONField(default=list) # Solution grid
+    difficulty = models.CharField(max_length=20, default='easy')
+    is_solved = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Sudoku for {self.circle.name}"

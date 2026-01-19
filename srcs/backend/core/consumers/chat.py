@@ -81,6 +81,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
         )
 
+        # Send notification to all circle members
+        member_ids = await self.get_circle_members(self.room_name)
+        for member_id in member_ids:
+            if member_id != self.user.id:
+                print(f"DEBUG: Sending notification to member {member_id}")
+                await self.channel_layer.group_send(
+                    f'notifications_{member_id}',
+                    {
+                        'type': 'send_notification',
+                        'notification': {
+                            'type': 'circle_message',
+                            'sender': self.user.username,
+                            'circle_id': self.room_name,
+                            'message': message
+                        }
+                    }
+                )
+
     # Receive message from room group
     async def chat_message(self, event):
         message = event['message']
@@ -119,3 +137,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def save_message(self, user, content, circle_id):
         circle = Circle.objects.get(id=circle_id)
         Message.objects.create(sender=user, content=content, circle=circle)
+
+    @database_sync_to_async
+    def get_circle_members(self, circle_id):
+        try:
+            circle = Circle.objects.get(id=circle_id)
+            return list(circle.members.values_list('id', flat=True))
+        except Circle.DoesNotExist:
+            return []

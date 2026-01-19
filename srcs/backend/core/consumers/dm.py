@@ -64,6 +64,21 @@ class DMConsumer(AsyncWebsocketConsumer):
             }
         )
 
+        # Send notification to receiver
+        print(f"DEBUG: Sending notification to target user {self.target_user_id}")
+        await self.channel_layer.group_send(
+            f'notifications_{self.target_user_id}',
+            {
+                'type': 'send_notification',
+                'notification': {
+                    'type': 'direct_message',
+                    'sender': self.user.username,
+                    'sender_id': self.user.id,
+                    'message': message
+                }
+            }
+        )
+
     # Receive message from room group
     async def chat_message(self, event):
         message = event['message']

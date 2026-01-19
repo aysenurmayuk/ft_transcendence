@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CreateCircleModal, CreateTaskModal, InviteModal, JoinCircleModal, TaskDetailModal, MembersModal, SudokuModal } from '../components/DashboardModals';
+import Toast from '../components/Toast';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -42,6 +43,12 @@ const Dashboard = () => {
 	const [editingCircleName, setEditingCircleName] = useState('');
 	const [editingDescription, setEditingDescription] = useState('');
 
+	// Notification State
+	const [toasts, setToasts] = useState([]);
+	const [notifications, setNotifications] = useState([]);
+	const [showNotifications, setShowNotifications] = useState(false);
+	const removeToast = (id) => setToasts(prev => prev.filter(t => t.id !== id));
+
 	// Modal States
 	const [showCreateCircle, setShowCreateCircle] = useState(false);
 	const [showCreateTask, setShowCreateTask] = useState(false);
@@ -49,6 +56,42 @@ const Dashboard = () => {
 	const [showJoin, setShowJoin] = useState(false);
 	const [showMembers, setShowMembers] = useState(false);
 	const [showSudoku, setShowSudoku] = useState(false);
+
+
+
+	const handleNotificationClick = (notif) => {
+		if (notif.type === 'direct_message') {
+			// Find user object from members list of current circle
+			// If not found, we might need a better way, but for now scan all circles
+			let targetUser = null;
+			for (const c of myCircles) {
+				const member = c.members.find(m => m.id === notif.sender_id);
+				if (member) {
+					targetUser = member;
+					break;
+				}
+			}
+
+			// Fallback if not found in any circle (unlikely if they are chatting)
+			if (!targetUser) {
+				targetUser = { id: notif.sender_id, username: notif.sender };
+			}
+
+			startDM(targetUser);
+		} else if (notif.type === 'circle_message') {
+			// Find circle
+			const circle = myCircles.find(c => c.name === notif.circle_id || c.id === Number(notif.circle_id));
+			if (circle) {
+				setSelectedEnv(circle);
+				setActiveChatMode('circle');
+				setChatOpen(true);
+				setSettingsOpen(false);
+			}
+		}
+		// Remove from list
+		setNotifications(prev => prev.filter(n => n.id !== notif.id));
+		setShowNotifications(false);
+	};
 
 	const handleKick = async (circleId, memberId) => {
 		const token = localStorage.getItem('token');
@@ -180,6 +223,48 @@ const Dashboard = () => {
 
 			return () => presenceWs.close();
 		}
+
+	}, []);
+
+	// Notification WebSocket
+	useEffect(() => {
+		const token = localStorage.getItem('token');
+		if (!token) return;
+
+		const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+		const wsUrl = `${protocol}//${window.location.host}/ws/notifications/?token=${token}`;
+		const notifWs = new WebSocket(wsUrl);
+
+		notifWs.onopen = () => console.log("Notification WS Connected");
+
+		notifWs.onmessage = (event) => {
+			try {
+				const data = JSON.parse(event.data);
+				if (data.type === 'notification' && data.data) {
+					const notif = data.data;
+					// Add to toasts (popup)
+					setToasts(prev => [...prev, {
+						id: Date.now(),
+						sender: notif.sender,
+						content: notif.message,
+						raw_data: notif
+					}]);
+
+					// Add to history
+					setNotifications(prev => [{
+						id: Date.now(),
+						type: notif.type,
+						sender: notif.sender,
+						sender_id: notif.sender_id, // Important for DM
+						circle_id: notif.circle_id, // Important for Circle
+						content: notif.message,
+						timestamp: new Date()
+					}, ...prev]);
+				}
+			} catch (e) { console.error("Notification parse error", e); }
+		};
+
+		return () => notifWs.close();
 	}, []);
 
 	const fetchCircles = async () => {
@@ -478,6 +563,24 @@ const Dashboard = () => {
 
 	return (
 		<div className="dashboard-body">
+			<div className="toast-container">
+				{toasts.map(toast => (
+					<Toast
+						key={toast.id}
+						message={{ sender: toast.sender, content: toast.content }}
+						onClose={() => removeToast(toast.id)}
+						onClick={() => {
+							handleNotificationClick({
+								type: toast.sender === 'System' ? 'system' : (toast.content.startsWith('DM from') ? 'direct_message' : 'circle_message'),
+								// This relies on content which is brittle. Better to store type in toast.
+								// Let's check how we added it.
+								...toast.raw_data
+							});
+							removeToast(toast.id);
+						}}
+					/>
+				))}
+			</div>
 			<div className="frame">
 
 				{/* Left Sidebar */}
@@ -587,6 +690,46 @@ const Dashboard = () => {
 									<div className="dot plus" onClick={() => setShowInvite(true)}>+</div>
 								</div>
 							)}
+
+							{/* Notification Bell */}
+							<div style={{ position: 'relative' }}>
+								<div className="notification-bell" onClick={() => setShowNotifications(!showNotifications)}>
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+										<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+										<path d="M13.73 21a2 2 0 0 1-3.46 0" />
+									</svg>
+									{notifications.length > 0 && <span className="badge">{notifications.length}</span>}
+								</div>
+
+								{/* Notification Dropdown */}
+								{showNotifications && (
+									<div className="notification-menu">
+										<div className="notification-header">
+											<span>Notifications</span>
+											{notifications.length > 0 && (
+												<button className="clear-btn" onClick={() => setNotifications([])}>Clear</button>
+											)}
+										</div>
+										<div className="notification-list">
+											{notifications.length === 0 ? (
+												<div className="empty-state">No notifications</div>
+											) : (
+												notifications.map(n => (
+													<div key={n.id} className="notification-item" onClick={() => handleNotificationClick(n)}>
+														<div className="notif-icon">💬</div>
+														<div className="notif-content">
+															<div className="notif-title">{n.sender}</div>
+															<div className="notif-body">{n.content}</div>
+															<div className="notif-time">{n.timestamp.toLocaleTimeString()}</div>
+														</div>
+													</div>
+												))
+											)}
+										</div>
+									</div>
+								)}
+							</div>
+
 							<div className="profile" onClick={openSettings}>
 								{user.avatar ?
 									<img src={user.avatar} alt="Me" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} /> :

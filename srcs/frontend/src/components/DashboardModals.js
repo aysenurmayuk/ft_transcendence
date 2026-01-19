@@ -263,8 +263,9 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 		} catch (e) { console.error(e); }
 	};
 
-	const completeTask = async () => {
+	const toggleTaskStatus = async () => {
 		const token = localStorage.getItem('token');
+		const newStatus = task.status === 'done' ? 'todo' : 'done';
 		try {
 			const res = await fetch(`/api/tasks/${task.id}/`, {
 				method: 'PATCH',
@@ -272,14 +273,14 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 					'Content-Type': 'application/json',
 					'Authorization': `Token ${token}`
 				},
-				body: JSON.stringify({ status: 'done' })
+				body: JSON.stringify({ status: newStatus })
 			});
 			if (res.ok) onUpdate();
 		} catch (e) { console.error(e); }
 	};
 
 	// Determine if user can complete (Assignment logic)
-	const canComplete = task.task_type === 'assignment' && task.status !== 'done' && (!task.assigned_to || task.assigned_to.id === user.id);
+	const canComplete = task.task_type === 'assignment' && (!task.assigned_to || task.assigned_to.id === user.id);
 	// Determine if user can delete (Creator only)
 	const canDelete = task.created_by.id === user.id;
 	const canEdit = task.created_by.id === user.id;
@@ -379,8 +380,15 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 								</button>
 							)}
 							{canComplete && (
-								<button onClick={completeTask} className="primary-btn" style={{ padding: '8px 16px', fontSize: '14px' }}>
-									Complete
+								<button
+									onClick={toggleTaskStatus}
+									className={task.status === 'done' ? '' : 'primary-btn'}
+									style={{
+										padding: '8px 16px',
+										fontSize: '14px',
+										...(task.status === 'done' ? { background: 'rgba(255,255,255,0.1)', color: '#cbd5e1', border: 'none', borderRadius: '6px', cursor: 'pointer' } : {})
+									}}>
+									{task.status === 'done' ? 'Mark Undone' : 'Complete'}
 								</button>
 							)}
 						</>

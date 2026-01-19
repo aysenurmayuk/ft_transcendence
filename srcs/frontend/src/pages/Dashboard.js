@@ -59,7 +59,7 @@ const Dashboard = () => {
 
 
 
-	const handleNotificationClick = (notif) => {
+	const handleNotificationClick = async (notif) => {
 		if (notif.type === 'direct_message') {
 			// Find user object from members list of current circle
 			// If not found, we might need a better way, but for now scan all circles
@@ -86,6 +86,27 @@ const Dashboard = () => {
 				setActiveChatMode('circle');
 				setChatOpen(true);
 				setSettingsOpen(false);
+			}
+		} else if (notif.type === 'task_assigned') {
+			// Find circle and switch
+			const circle = myCircles.find(c => c.id === Number(notif.circle_id));
+			if (circle) {
+				setSelectedEnv(circle);
+
+				// Fetch and open task
+				try {
+					const token = localStorage.getItem('token');
+					const res = await fetch(`/api/tasks/${notif.task_id}/`, {
+						headers: { 'Authorization': `Token ${token}` }
+					});
+					if (res.ok) {
+						const task = await res.json();
+						setSelectedTask(task);
+						setShowTaskDetail(true);
+					}
+				} catch (e) {
+					console.error("Failed to open task from notification", e);
+				}
 			}
 		}
 		// Remove from list
@@ -257,6 +278,7 @@ const Dashboard = () => {
 						sender: notif.sender,
 						sender_id: notif.sender_id, // Important for DM
 						circle_id: notif.circle_id, // Important for Circle
+						task_id: notif.task_id,     // Important for Task
 						content: notif.message,
 						timestamp: new Date()
 					}, ...prev]);
@@ -571,9 +593,7 @@ const Dashboard = () => {
 						onClose={() => removeToast(toast.id)}
 						onClick={() => {
 							handleNotificationClick({
-								type: toast.sender === 'System' ? 'system' : (toast.content.startsWith('DM from') ? 'direct_message' : 'circle_message'),
-								// This relies on content which is brittle. Better to store type in toast.
-								// Let's check how we added it.
+								type: toast.sender === 'System' ? 'system' : (toast.raw_data && toast.raw_data.type ? toast.raw_data.type : (toast.content.startsWith('DM from') ? 'direct_message' : 'circle_message')),
 								...toast.raw_data
 							});
 							removeToast(toast.id);

@@ -33,6 +33,44 @@ class TaskViewSet(viewsets.ModelViewSet):
                  f'chat_{circle.id}',
                  {'type': 'task_update', 'action': 'create'}
              )
+             
+             # Notify assignee(s)
+             if serializer.instance.task_type == 'assignment':
+                if serializer.instance.assigned_to:
+                     if serializer.instance.assigned_to != self.request.user:
+                        assignee_id = serializer.instance.assigned_to.id
+                        print(f"DEBUG: Sending assignment notification to {assignee_id}")
+                        async_to_sync(channel_layer.group_send)(
+                            f'notifications_{assignee_id}',
+                            {
+                                'type': 'send_notification',
+                                'notification': {
+                                    'type': 'task_assigned',
+                                    'sender': self.request.user.username,
+                                    'circle_id': circle.id,
+                                    'task_id': serializer.instance.id,
+                                    'message': f"Assigned you to task: {serializer.instance.title}"
+                                }
+                            }
+                        )
+                else:
+                    # Assigned to Everyone - Notify all members except creator
+                    print(f"DEBUG: Task assigned to Everyone in circle {circle.id}")
+                    for member in circle.members.all():
+                        if member.id != self.request.user.id:
+                            async_to_sync(channel_layer.group_send)(
+                                f'notifications_{member.id}',
+                                {
+                                    'type': 'send_notification',
+                                    'notification': {
+                                        'type': 'task_assigned',
+                                        'sender': self.request.user.username,
+                                        'circle_id': circle.id,
+                                        'task_id': serializer.instance.id,
+                                        'message': f"Assigned everyone to task: {serializer.instance.title}"
+                                    }
+                                }
+                            )
         except Exception as e:
              print(f"Error sending signal: {e}")
 
@@ -54,10 +92,10 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         instance = self.get_object()
-        # If completing an assignment, check if user is assigned
-        if serializer.validated_data.get('status') == 'done':
+        # If updating status, check if user is assigned
+        if serializer.validated_data.get('status'):
             if instance.task_type == 'assignment' and instance.assigned_to and instance.assigned_to != self.request.user:
-                raise permissions.PermissionDenied("Only the assigned user can complete this task.")
+                raise permissions.PermissionDenied("Only the assigned user can update the status of this task.")
         serializer.save()
         
         # Signal Update

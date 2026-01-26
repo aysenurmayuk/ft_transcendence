@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { CreateCircleModal, CreateTaskModal, InviteModal, JoinCircleModal, TaskDetailModal, MembersModal } from '../components/DashboardModals';
+import { CreateCircleModal, CreateTaskModal, InviteModal, JoinCircleModal, TaskDetailModal, MembersModal, SudokuModal } from '../components/DashboardModals';
 import Toast from '../components/Toast';
-import Sudoku from './Sudoku';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -11,7 +10,7 @@ const Dashboard = () => {
 
 	// Feature States
 	const [chatOpen, setChatOpen] = useState(false);
-	const [currentView, setCurrentView] = useState('tasks'); // 'tasks', 'sudoku', or 'settings'
+	const [settingsOpen, setSettingsOpen] = useState(false);
 
 	// Data States
 	const [selectedEnv, setSelectedEnv] = useState(null); // Full Circle Object
@@ -56,6 +55,7 @@ const Dashboard = () => {
 	const [showInvite, setShowInvite] = useState(false);
 	const [showJoin, setShowJoin] = useState(false);
 	const [showMembers, setShowMembers] = useState(false);
+	const [showSudoku, setShowSudoku] = useState(false);
 
 
 
@@ -85,6 +85,7 @@ const Dashboard = () => {
 				setSelectedEnv(circle);
 				setActiveChatMode('circle');
 				setChatOpen(true);
+				setSettingsOpen(false);
 			}
 		}
 		// Remove from list
@@ -403,12 +404,12 @@ const Dashboard = () => {
 	}, [selectedEnv, activeChatMode, dmTarget]);
 
 	useEffect(() => {
-		if (selectedEnv && currentView === 'tasks') {
+		if (selectedEnv) {
 			fetchTasks(selectedEnv.id);
 		} else {
 			setTasks([]);
 		}
-	}, [selectedEnv, currentView]);
+	}, [selectedEnv]);
 
 	// Helpers
 	const sendMessage = (e) => {
@@ -427,6 +428,7 @@ const Dashboard = () => {
 		setDmTarget(targetUser);
 		setActiveChatMode('dm');
 		setChatOpen(true);
+		setSettingsOpen(false);
 	};
 
 	const returnToTeamChat = () => {
@@ -504,6 +506,7 @@ const Dashboard = () => {
 			if (res.ok) {
 				const updatedUser = await res.json();
 				setUser(updatedUser);
+				setSettingsOpen(false);
 				alert("Profile updated successfully!");
 				localStorage.setItem('user', JSON.stringify(updatedUser));
 				window.location.reload();
@@ -549,7 +552,8 @@ const Dashboard = () => {
 	};
 
 	// Close one sidebar if other opens
-	const openChat = () => { setChatOpen(true); };
+	const openChat = () => { setSettingsOpen(false); setChatOpen(true); };
+	const openSettings = () => { setChatOpen(false); setSettingsOpen(true); };
 
 	const openTaskDetail = (task) => {
 		setSelectedTask(task);
@@ -591,35 +595,25 @@ const Dashboard = () => {
 					</div>
 
 					<nav className="nav">
-						<div className={`nav-item ${currentView === 'tasks' ? 'active' : ''}`} onClick={() => { setCurrentView('tasks'); setChatOpen(false); }}>
-							<div className="icon">
-								<img src="https://img.icons8.com/wired/64/home-page.png" alt="dashboard" style={{ width: "24px", height: "24px", objectFit: 'contain' }} />
-							</div>
+						<div className="nav-item active" onClick={() => { setChatOpen(false); setSettingsOpen(false); }}>
+							<div className="icon">🏠</div>
 							<div className="label">Dashboard</div>
 						</div>
 						<div className="nav-item" onClick={() => setShowMembers(true)}>
-							<div className="icon">
-								<img src="https://img.icons8.com/pulsar-line/48/conference-call.png" alt="members" style={{ width: "24px", height: "24px", objectFit: 'contain' }} />
-							</div>
+							<div className="icon">👥</div>
 							<div className="label">Members</div>
 						</div>
 						<div className={`nav-item ${chatOpen ? 'active' : ''}`} onClick={() => chatOpen ? setChatOpen(false) : openChat()}>
-							<div className="icon">
-								<img src="https://img.icons8.com/wired/64/chat.png" alt="chat" style={{ width: "24px", height: "24px", objectFit: 'contain' }} />
-							</div>
+							<div className="icon">💬</div>
 							<div className="label">Chat</div>
 						</div>
-						<div className={`nav-item ${currentView === 'settings' ? 'active' : ''}`} onClick={() => { setCurrentView('settings'); setChatOpen(false); }}>
-							<div className="icon">
-								<img src="https://img.icons8.com/bubbles/100/settings.png" alt="settings" style={{ width: "24px", height: "24px", objectFit: 'contain' }} />
-							</div>
-							<div className="label">Settings</div>
-						</div>
-						<div className={`nav-item ${currentView === 'sudoku' ? 'active' : ''}`} onClick={() => { setCurrentView('sudoku'); setChatOpen(false); }}>
-							<div className="icon">
-								<img src="https://img.icons8.com/external-icongeek26-outline-icongeek26/64/external-Sudoku-table-games-icongeek26-outline-icongeek26.png" alt="Sudoku" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
-							</div>
+						<div className="nav-item" onClick={() => setShowSudoku(true)}>
+							<div className="icon">🧩</div>
 							<div className="label">Sudoku</div>
+						</div>
+						<div className={`nav-item ${settingsOpen ? 'active' : ''}`} onClick={() => settingsOpen ? setSettingsOpen(false) : openSettings()}>
+							<div className="icon">⚙️</div>
+							<div className="label">Settings</div>
 						</div>
 					</nav>
 				</aside>
@@ -736,7 +730,7 @@ const Dashboard = () => {
 								)}
 							</div>
 
-							<div className="profile" onClick={() => { setCurrentView('settings'); setChatOpen(false); }}>
+							<div className="profile" onClick={openSettings}>
 								{user.avatar ?
 									<img src={user.avatar} alt="Me" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} /> :
 									<span style={{ fontSize: '20px' }}>👤</span>
@@ -754,165 +748,147 @@ const Dashboard = () => {
 							</div>
 						) : (
 							<>
-								{currentView === 'tasks' ? (
-									<>
-										<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-											<div>
-												<h2 style={{ fontSize: '28px', fontWeight: 700, color: '#fff' }}>Tasks</h2>
-												<p style={{ color: 'var(--text-muted)', marginTop: '4px' }}>{selectedEnv.description}</p>
-											</div>
-											<button className="primary-btn" type="button" style={{ padding: '12px 24px', fontSize: '15px' }} onClick={() => { setPreselectedAssignee(''); setShowCreateTask(true); }}>
-												+ New Item
-											</button>
-										</div>
+								<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+									<div>
+										<h2 style={{ fontSize: '28px', fontWeight: 700, color: '#fff' }}>Tasks</h2>
+										<p style={{ color: 'var(--text-muted)', marginTop: '4px' }}>{selectedEnv.description}</p>
+									</div>
+									<button className="primary-btn" type="button" style={{ padding: '12px 24px', fontSize: '15px' }} onClick={() => { setPreselectedAssignee(''); setShowCreateTask(true); }}>
+										+ New Item
+									</button>
+								</div>
 
-										<div className="grid">
-											{tasks.map(task => (
-												<div className="card" key={task.id}
-													onClick={() => openTaskDetail(task)}
-													style={{
-														cursor: 'pointer',
-														borderLeft: task.task_type === 'note' ? '4px solid #facc15' : task.task_type === 'checklist' ? '4px solid #38bdf8' : '4px solid #6366f1'
-													}}>
-													<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-														<div className="tiny" style={{
-															background: task.status === 'done' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255,255,255,0.05)',
-															color: task.status === 'done' ? '#4ade80' : '#94a3b8',
-															padding: '4px 8px', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase'
-														}}>
-															{task.task_type} {task.status === 'done' && '✓'}
-														</div>
-													</div>
-
-													<div style={{ flex: 1, marginBottom: '10px' }}>
-														<div className="card-title" style={{ fontSize: '16px' }}>{task.title}</div>
-														<div className="card-subtitle" style={{ marginTop: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#64748b' }}>
-															{task.task_type === 'checklist'
-																? `${task.checklist_items ? task.checklist_items.filter(i => i.is_checked).length : 0}/${task.checklist_items ? task.checklist_items.length : 0} items done`
-																: (task.description || 'No preview available')}
-														</div>
-													</div>
-
-													<div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-														{task.task_type === 'assignment' && (
-															<span style={{ fontSize: '12px', color: '#64748b' }}>Assigned: {task.assigned_to ? task.assigned_to.username : <span style={{ fontStyle: 'italic' }}>Everyone</span>}</span>
-														)}
-														<span style={{ fontSize: '11px', color: '#475569' }}>{new Date(task.created_at).toLocaleDateString()}</span>
-													</div>
+								<div className="grid">
+									{tasks.map(task => (
+										<div className="card" key={task.id}
+											onClick={() => openTaskDetail(task)}
+											style={{
+												cursor: 'pointer',
+												borderLeft: task.task_type === 'note' ? '4px solid #facc15' : task.task_type === 'checklist' ? '4px solid #38bdf8' : '4px solid #6366f1'
+											}}>
+											<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+												<div className="tiny" style={{
+													background: task.status === 'done' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255,255,255,0.05)',
+													color: task.status === 'done' ? '#4ade80' : '#94a3b8',
+													padding: '4px 8px', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase'
+												}}>
+													{task.task_type} {task.status === 'done' && '✓'}
 												</div>
-											))}
-										</div>
-									</>
-								) : currentView === 'sudoku' ? (
-									<>
-										<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-											<div>
-												<h2 style={{ fontSize: '28px', fontWeight: 700, color: '#fff' }}>Sudoku</h2>
-												<p style={{ color: 'var(--text-muted)', marginTop: '4px' }}>{selectedEnv.description}</p>
-											</div>
-										</div>
-
-										<div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-											<Sudoku circleId={selectedEnv?.id} />
-										</div>
-									</>
-								) : (
-									<>
-										<div style={{ marginBottom: '32px' }}>
-											<h2 style={{ fontSize: '28px', fontWeight: 700, color: '#fff' }}>Settings</h2>
-										</div>
-
-										<div style={{ maxWidth: '600px', margin: '0 auto' }}>
-											<div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '32px', marginBottom: '24px' }}>
-												<h3 style={{ fontSize: '20px', fontWeight: 600, color: '#fff', marginBottom: '24px' }}>Profile Settings</h3>
-												<form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-													<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-														<div style={{ width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.1)', background: '#1e293b' }}>
-															{profileData.avatarUrl ?
-																<img src={profileData.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> :
-																<div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', fontSize: '40px', color: '#fff' }}>👤</div>
-															}
-														</div>
-														<label htmlFor="avatar-upload" style={{ color: '#818cf8', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}>
-															Change Photo
-															<input id="avatar-upload" type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
-														</label>
-													</div>
-													{profileData.avatarUrl && (
-														<button
-															type="button"
-															onClick={() => {
-																setProfileData({ ...profileData, avatar: null, avatarUrl: '', removeAvatar: true });
-															}}
-															style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', alignSelf: 'center', marginTop: '10px' }}>
-															Remove Avatar
-														</button>
-													)}
-													<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-														<label style={{ fontSize: '13px', color: '#94a3b8' }}>Username</label>
-														<input className="glass-input" type="text" value={profileData.username} onChange={e => setProfileData({ ...profileData, username: e.target.value })} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none' }} />
-													</div>
-													<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-														<label style={{ fontSize: '13px', color: '#94a3b8' }}>Email</label>
-														<input className="glass-input" type="email" value={profileData.email} onChange={e => setProfileData({ ...profileData, email: e.target.value })} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none' }} />
-													</div>
-													<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-														<label style={{ fontSize: '13px', color: '#94a3b8' }}>New Password (Optional)</label>
-														<input className="glass-input" type="password" value={profileData.password} onChange={e => setProfileData({ ...profileData, password: e.target.value })} placeholder="Leave blank to keep current" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none' }} />
-													</div>
-													<button type="submit" className="primary-btn" style={{ justifyContent: 'center', marginTop: '12px' }}>Save Changes</button>
-
-													<div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '20px', paddingTop: '20px' }}>
-														<button
-															type="button"
-															onClick={handleLogout}
-															style={{
-																width: '100%', padding: '12px', background: 'rgba(239, 68, 68, 0.1)',
-																color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)',
-																borderRadius: '8px', cursor: 'pointer', fontWeight: 600,
-																display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-															}}
-														>
-															🚪 Logout
-														</button>
-													</div>
-												</form>
 											</div>
 
-											{selectedEnv && selectedEnv.admin && selectedEnv.admin.id === user.id && (
-												<div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '32px' }}>
-													<h3 style={{ fontSize: '20px', fontWeight: 600, color: '#fff', marginBottom: '20px' }}>Circle Settings</h3>
-													<form onSubmit={handleUpdateCircle} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-														<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-															<label style={{ fontSize: '13px', color: '#94a3b8' }}>Circle Name</label>
-															<input
-																className="glass-input"
-																type="text"
-																value={editingCircleName}
-																onChange={e => setEditingCircleName(e.target.value)}
-																style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none' }}
-															/>
-														</div>
-														<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-															<label style={{ fontSize: '13px', color: '#94a3b8' }}>Description</label>
-															<textarea
-																className="glass-input"
-																value={editingDescription}
-																onChange={e => setEditingDescription(e.target.value)}
-																rows={3}
-																style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none', resize: 'vertical' }}
-															/>
-														</div>
-														<button type="submit" className="primary-btn" style={{ justifyContent: 'center' }}>Save Settings</button>
-													</form>
+											<div style={{ flex: 1, marginBottom: '10px' }}>
+												<div className="card-title" style={{ fontSize: '16px' }}>{task.title}</div>
+												{/* Simplified Content View */}
+												<div className="card-subtitle" style={{ marginTop: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#64748b' }}>
+													{task.task_type === 'checklist'
+														? `${task.checklist_items ? task.checklist_items.filter(i => i.is_checked).length : 0}/${task.checklist_items ? task.checklist_items.length : 0} items done`
+														: (task.description || 'No preview available')}
 												</div>
-											)}
+											</div>
+
+											{/* Footer - Minimal */}
+											<div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+												{task.task_type === 'assignment' && (
+													<span style={{ fontSize: '12px', color: '#64748b' }}>Assigned: {task.assigned_to ? task.assigned_to.username : <span style={{ fontStyle: 'italic' }}>Everyone</span>}</span>
+												)}
+												<span style={{ fontSize: '11px', color: '#475569' }}>{new Date(task.created_at).toLocaleDateString()}</span>
+											</div>
 										</div>
-									</>
-								)}
+									))}
+								</div>
 							</>
 						)}
 					</main>
+				</div>
+
+				{/* Settings Sidebar */}
+				<div className={`settings-sidebar ${settingsOpen ? 'open' : ''}`}>
+					<div style={{ padding: '20px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+						<h2 style={{ fontSize: '18px', fontWeight: 600, color: '#fff' }}>Profile Settings</h2>
+						<button onClick={() => setSettingsOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '24px' }}>&times;</button>
+					</div>
+
+					<form onSubmit={handleUpdateProfile} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
+						<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+							<div style={{ width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.1)', background: '#1e293b' }}>
+								{profileData.avatarUrl ?
+									<img src={profileData.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> :
+									<div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', fontSize: '40px', color: '#fff' }}>👤</div>
+								}
+							</div>
+							<label htmlFor="avatar-upload" style={{ color: '#818cf8', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}>
+								Change Photo
+								<input id="avatar-upload" type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+							</label>
+						</div>
+						{profileData.avatarUrl && (
+							<button
+								type="button"
+								onClick={() => {
+									setProfileData({ ...profileData, avatar: null, avatarUrl: '', removeAvatar: true });
+								}}
+								style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', alignSelf: 'center', marginTop: '10px' }}>
+								Remove Avatar
+							</button>
+						)}
+						<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+							<label style={{ fontSize: '13px', color: '#94a3b8' }}>Username</label>
+							<input className="glass-input" type="text" value={profileData.username} onChange={e => setProfileData({ ...profileData, username: e.target.value })} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none' }} />
+						</div>
+						<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+							<label style={{ fontSize: '13px', color: '#94a3b8' }}>Email</label>
+							<input className="glass-input" type="email" value={profileData.email} onChange={e => setProfileData({ ...profileData, email: e.target.value })} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none' }} />
+						</div>
+						<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+							<label style={{ fontSize: '13px', color: '#94a3b8' }}>New Password (Optional)</label>
+							<input className="glass-input" type="password" value={profileData.password} onChange={e => setProfileData({ ...profileData, password: e.target.value })} placeholder="Leave blank to keep current" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none' }} />
+						</div>
+						<button type="submit" className="primary-btn" style={{ justifyContent: 'center', marginTop: '12px' }}>Save Changes</button>
+
+						<div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '20px', paddingTop: '20px' }}>
+							<button
+								type="button"
+								onClick={handleLogout}
+								style={{
+									width: '100%', padding: '12px', background: 'rgba(239, 68, 68, 0.1)',
+									color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)',
+									borderRadius: '8px', cursor: 'pointer', fontWeight: 600,
+									display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+								}}
+							>
+								🚪 Logout
+							</button>
+						</div>
+					</form>
+
+					{selectedEnv && selectedEnv.admin && selectedEnv.admin.id === user.id && (
+						<div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+							<h2 style={{ fontSize: '18px', fontWeight: 600, color: '#fff', marginBottom: '20px' }}>Circle Settings</h2>
+							<form onSubmit={handleUpdateCircle} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+								<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+									<label style={{ fontSize: '13px', color: '#94a3b8' }}>Circle Name</label>
+									<input
+										className="glass-input"
+										type="text"
+										value={editingCircleName}
+										onChange={e => setEditingCircleName(e.target.value)}
+										style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none' }}
+									/>
+								</div>
+								<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+									<label style={{ fontSize: '13px', color: '#94a3b8' }}>Description</label>
+									<textarea
+										className="glass-input"
+										value={editingDescription}
+										onChange={e => setEditingDescription(e.target.value)}
+										rows={3}
+										style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none', resize: 'vertical' }}
+									/>
+								</div>
+								<button type="submit" className="primary-btn" style={{ justifyContent: 'center' }}>Save Settings</button>
+							</form>
+						</div>
+					)}
 				</div>
 
 				{/* Chat Sidebar */}
@@ -1015,6 +991,7 @@ const Dashboard = () => {
 				onLeave={handleLeaveCircle}
 				onlineUsers={onlineUsers}
 			/>
+			<SudokuModal isOpen={showSudoku} onClose={() => setShowSudoku(false)} circleId={selectedEnv?.id} />
 		</div>
 	);
 };

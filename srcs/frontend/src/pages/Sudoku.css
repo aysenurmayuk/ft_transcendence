@@ -32,6 +32,7 @@
 .sudoku-board {
 	display: grid;
 	grid-template-columns: repeat(9, 1fr);
+	grid-template-rows: repeat(9, 1fr);
 	gap: 1px;
 	background: #4a4a4a;
 	padding: 2px;
@@ -40,6 +41,7 @@
 	max-width: 500px;
 	width: 100%;
 	aspect-ratio: 1;
+	box-sizing: border-box;
 }
 
 .cell {
@@ -51,6 +53,13 @@
 	cursor: pointer;
 	transition: all 0.2s;
 	color: #e0e0e0;
+	min-width: 0;
+	min-height: 0;
+	width: 100%;
+	height: 100%;
+	box-sizing: border-box;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .cell:hover {
@@ -75,28 +84,7 @@
 	background: rgba(255, 77, 79, 0.1);
 }
 
-/* Add thicker borders for 3x3 grids */
-.cell:nth-child(3n) {
-	border-right: 1px solid #4a4a4a;
-}
-
-.cell:nth-child(9n) {
-	border-right: none;
-}
-
-.sudoku-board .cell:nth-child(n+19):nth-child(-n+27),
-.sudoku-board .cell:nth-child(n+46):nth-child(-n+54) {
-	border-bottom: 1px solid #4a4a4a;
-}
-
-/* Override for visual separation of 3x3 blocks */
-.cell:nth-child(3n) {
-	border-right: 2px solid #5a5a5a;
-}
-
-.cell:nth-child(9n) {
-	border-right: none;
-}
+/* Border styles are handled inline in JSX for better control */
 
 .row-separator {
 	grid-column: 1 / -1;

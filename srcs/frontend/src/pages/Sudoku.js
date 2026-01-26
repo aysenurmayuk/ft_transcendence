@@ -169,11 +169,8 @@ const Sudoku = ({ circleId }) => {
                 `}
 								onClick={() => handleCellClick(rowIndex, colIndex)}
 								style={{
-									borderRight: (colIndex + 1) % 3 === 0 && colIndex !== 8 ? '2px solid #5a5a5a' : '1px solid rgba(255,255,255,0.1)',
-									borderBottom: (rowIndex + 1) % 3 === 0 && rowIndex !== 8 ? '2px solid #5a5a5a' : '1px solid rgba(255,255,255,0.1)',
-									borderLeft: colIndex % 3 === 0 && colIndex !== 0 ? '2px solid #5a5a5a' : 'none',
-									borderTop: rowIndex % 3 === 0 && rowIndex !== 0 ? '2px solid #5a5a5a' : 'none',
-									boxSizing: 'border-box'
+									borderRight: (colIndex + 1) % 3 === 0 && colIndex !== 8 ? '2px solid #5a5a5a' : '',
+									borderBottom: (rowIndex + 1) % 3 === 0 && rowIndex !== 8 ? '2px solid #5a5a5a' : ''
 								}}
 							>
 								{cell !== 0 ? cell : ''}

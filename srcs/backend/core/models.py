@@ -34,7 +34,7 @@ class Task(models.Model):
     circle = models.ForeignKey(Circle, related_name='tasks', on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    assigned_to = models.ForeignKey(User, related_name='tasks', null=True, blank=True, on_delete=models.SET_NULL)
+    assignees = models.ManyToManyField(User, related_name='assigned_tasks', blank=True)
     created_by = models.ForeignKey(User, related_name='created_tasks', on_delete=models.CASCADE)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='todo')
     task_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='assignment')

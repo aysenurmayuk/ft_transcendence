@@ -33,23 +33,66 @@ class ChecklistItemSerializer(serializers.ModelSerializer):
 
 class TaskSerializer(serializers.ModelSerializer):
     created_by = UserSerializer(read_only=True)
-    assigned_to = UserSerializer(read_only=True)
-    assigned_to_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), source='assigned_to', write_only=True, required=False, allow_null=True
+    assignees = UserSerializer(many=True, read_only=True)
+    assignee_ids = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), source='assignees', write_only=True, required=False, many=True
     )
     checklist_items = ChecklistItemSerializer(many=True, required=False)
     
     class Meta:
         model = Task
-        fields = ['id', 'title', 'description', 'status', 'task_type', 'created_by', 'assigned_to', 'assigned_to_id', 'created_at', 'circle', 'checklist_items']
+        fields = ['id', 'title', 'description', 'status', 'task_type', 'created_by', 'assignees', 'assignee_ids', 'created_at', 'circle', 'checklist_items']
         read_only_fields = ['created_by', 'circle']
 
     def create(self, validated_data):
         checklist_data = validated_data.pop('checklist_items', [])
+        assignees = validated_data.pop('assignees', [])
         task = Task.objects.create(**validated_data)
+        if assignees:
+            task.assignees.set(assignees)
         for item_data in checklist_data:
             ChecklistItem.objects.create(task=task, **item_data)
         return task
+
+    def update(self, instance, validated_data):
+        checklist_data = validated_data.pop('checklist_items', None)
+        assignees = validated_data.pop('assignees', None)
+        
+        # Update Task fields
+        instance.title = validated_data.get('title', instance.title)
+        instance.description = validated_data.get('description', instance.description)
+        instance.status = validated_data.get('status', instance.status)
+        instance.task_type = validated_data.get('task_type', instance.task_type)
+        instance.save()
+        
+        if assignees is not None:
+            instance.assignees.set(assignees)
+
+        # Handle Checklist Items if provided
+        if checklist_data is not None:
+            existing_items = {item.id: item for item in instance.checklist_items.all()}
+            incoming_item_ids = []
+
+            for item_data in checklist_data:
+                item_id = item_data.get('id')
+                if item_id and item_id in existing_items:
+                    # Update existing item
+                    item = existing_items[item_id]
+                    item.content = item_data.get('content', item.content)
+                    item.is_checked = item_data.get('is_checked', item.is_checked)
+                    item.save()
+                    incoming_item_ids.append(item_id)
+                else:
+                    # Create new item
+                    new_item = ChecklistItem.objects.create(task=instance, **item_data)
+                    incoming_item_ids.append(new_item.id)
+            
+            # Delete items that are not in the incoming list
+            for item_id, item in existing_items.items():
+                if item_id not in incoming_item_ids:
+                    item.delete()
+
+        return instance
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)

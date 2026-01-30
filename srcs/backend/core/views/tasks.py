@@ -12,7 +12,7 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Filter by circle_id if provided
-        queryset = Task.objects.all()
+        queryset = Task.objects.all().order_by('-created_at')
         circle_id = self.request.query_params.get('circle_id')
         if circle_id:
             queryset = queryset.filter(circle_id=circle_id)
@@ -36,26 +36,27 @@ class TaskViewSet(viewsets.ModelViewSet):
              
              # Notify assignee(s)
              if serializer.instance.task_type == 'assignment':
-                if serializer.instance.assigned_to:
-                     if serializer.instance.assigned_to != self.request.user:
-                        assignee_id = serializer.instance.assigned_to.id
-                        print(f"DEBUG: Sending assignment notification to {assignee_id}")
-                        async_to_sync(channel_layer.group_send)(
-                            f'notifications_{assignee_id}',
-                            {
-                                'type': 'send_notification',
-                                'notification': {
-                                    'type': 'task_assigned',
-                                    'sender': self.request.user.username,
-                                    'circle_id': circle.id,
-                                    'task_id': serializer.instance.id,
-                                    'message': f"Assigned you to task: {serializer.instance.title}"
+                assignees = serializer.instance.assignees.all()
+                if assignees.exists():
+                     for assignee in assignees:
+                        if assignee != self.request.user:
+                            print(f"DEBUG: Sending assignment notification to {assignee.id}")
+                            async_to_sync(channel_layer.group_send)(
+                                f'notifications_{assignee.id}',
+                                {
+                                    'type': 'send_notification',
+                                    'notification': {
+                                        'type': 'task_assigned',
+                                        'sender': self.request.user.username,
+                                        'circle_id': circle.id,
+                                        'task_id': serializer.instance.id,
+                                        'message': f"Assigned you to task: {serializer.instance.title}"
+                                    }
                                 }
-                            }
-                        )
+                            )
                 else:
-                    # Assigned to Everyone - Notify all members except creator
-                    print(f"DEBUG: Task assigned to Everyone in circle {circle.id}")
+                    # Assigned to Everyone (if no specific assignees) - Notify all members except creator
+                    print(f"DEBUG: Task assigned to Everyone (no specific assignees) in circle {circle.id}")
                     for member in circle.members.all():
                         if member.id != self.request.user.id:
                             async_to_sync(channel_layer.group_send)(
@@ -71,6 +72,24 @@ class TaskViewSet(viewsets.ModelViewSet):
                                     }
                                 }
                             )
+             elif serializer.instance.task_type in ['note', 'checklist']:
+                 # Notify all members about new note/checklist
+                 print(f"DEBUG: New {serializer.instance.task_type} created in circle {circle.id}")
+                 for member in circle.members.all():
+                    if member.id != self.request.user.id:
+                        async_to_sync(channel_layer.group_send)(
+                            f'notifications_{member.id}',
+                            {
+                                'type': 'send_notification',
+                                'notification': {
+                                    'type': f'{serializer.instance.task_type}_created',
+                                    'sender': self.request.user.username,
+                                    'circle_id': circle.id,
+                                    'task_id': serializer.instance.id,
+                                    'message': f"New {serializer.instance.task_type}: {serializer.instance.title}"
+                                }
+                            }
+                        )
         except Exception as e:
              print(f"Error sending signal: {e}")
 
@@ -92,11 +111,65 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         instance = self.get_object()
+        # Track changes
+        old_assignees = set(instance.assignees.all())
+        old_status = instance.status
+
         # If updating status, check if user is assigned
         if serializer.validated_data.get('status'):
-            if instance.task_type == 'assignment' and instance.assigned_to and instance.assigned_to != self.request.user:
+            if instance.task_type == 'assignment' and instance.assignees.exists() and self.request.user not in instance.assignees.all():
                 raise permissions.PermissionDenied("Only the assigned user can update the status of this task.")
-        serializer.save()
+        
+        updated_instance = serializer.save()
+        
+        # 1. Check for Assignment Change
+        new_assignees = set(updated_instance.assignees.all())
+        added_assignees = new_assignees - old_assignees
+        
+        if added_assignees:
+             for assignee in added_assignees:
+                 if assignee != self.request.user:
+                     print(f"DEBUG: Task assigned (added) to {assignee.username}")
+                     try:
+                         channel_layer = get_channel_layer()
+                         async_to_sync(channel_layer.group_send)(
+                            f'notifications_{assignee.id}',
+                            {
+                                'type': 'send_notification',
+                                'notification': {
+                                    'type': 'task_assigned',
+                                    'sender': self.request.user.username,
+                                    'circle_id': updated_instance.circle.id,
+                                    'task_id': updated_instance.id,
+                                    'message': f"Assigned you to task: {updated_instance.title}"
+                                }
+                            }
+                        )
+                     except Exception as e:
+                         print(f"Error sending assignment notification: {e}")
+
+        # 2. Check for Completion
+        if updated_instance.status == 'done' and old_status != 'done':
+             print(f"DEBUG: Task {updated_instance.id} completed")
+             try:
+                 channel_layer = get_channel_layer()
+                 for member in updated_instance.circle.members.all():
+                    if member.id != self.request.user.id:
+                        async_to_sync(channel_layer.group_send)(
+                            f'notifications_{member.id}',
+                            {
+                                'type': 'send_notification',
+                                'notification': {
+                                    'type': 'task_completed',
+                                    'sender': self.request.user.username,
+                                    'circle_id': updated_instance.circle.id,
+                                    'task_id': updated_instance.id,
+                                    'message': f"Completed task: {updated_instance.title}"
+                                }
+                            }
+                        )
+             except Exception as e:
+                 print(f"Error sending completion notification: {e}")
         
         # Signal Update
         try:

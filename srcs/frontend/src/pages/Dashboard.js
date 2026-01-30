@@ -87,7 +87,7 @@ const Dashboard = () => {
 				setChatOpen(true);
 				setSettingsOpen(false);
 			}
-		} else if (notif.type === 'task_assigned') {
+		} else if (['task_assigned', 'note_created', 'checklist_created', 'task_completed'].includes(notif.type)) {
 			// Find circle and switch
 			const circle = myCircles.find(c => c.id === Number(notif.circle_id));
 			if (circle) {
@@ -809,7 +809,11 @@ const Dashboard = () => {
 											{/* Footer - Minimal */}
 											<div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
 												{task.task_type === 'assignment' && (
-													<span style={{ fontSize: '12px', color: '#64748b' }}>Assigned: {task.assigned_to ? task.assigned_to.username : <span style={{ fontStyle: 'italic' }}>Everyone</span>}</span>
+													<span style={{ fontSize: '12px', color: '#64748b' }}>
+														Assigned: {task.assignees && task.assignees.length > 0
+															? task.assignees.map(u => u.username).join(', ')
+															: <span style={{ fontStyle: 'italic' }}>Everyone</span>}
+													</span>
 												)}
 												<span style={{ fontSize: '11px', color: '#475569' }}>{new Date(task.created_at).toLocaleDateString()}</span>
 											</div>
@@ -990,6 +994,7 @@ const Dashboard = () => {
 				user={user}
 				onUpdate={() => fetchTasks(selectedEnv.id)}
 				onDelete={deleteTask}
+				members={selectedEnv?.members}
 			/>
 			<MembersModal
 				isOpen={showMembers}

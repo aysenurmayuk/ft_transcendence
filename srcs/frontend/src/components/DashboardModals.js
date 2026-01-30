@@ -54,7 +54,7 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 	const [taskType, setTaskType] = useState('assignment'); // assignment, checklist, note
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
-	const [assignedTo, setAssignedTo] = useState('');
+	const [assignees, setAssignees] = useState([]);
 	// Checklist state
 	const [checklistItems, setChecklistItems] = useState([]);
 	const [newItem, setNewItem] = useState('');
@@ -70,6 +70,18 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 		setChecklistItems(checklistItems.filter((_, i) => i !== index));
 	};
 
+	const toggleAssignee = (memberId) => {
+		if (memberId === 'everyone') {
+			setAssignees([]);
+		} else {
+			if (assignees.includes(memberId)) {
+				setAssignees(prev => prev.filter(id => id !== memberId));
+			} else {
+				setAssignees(prev => [...prev, memberId]);
+			}
+		}
+	};
+
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		const token = localStorage.getItem('token');
@@ -82,7 +94,7 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 		};
 
 		if (taskType === 'assignment') {
-			if (assignedTo) payload.assigned_to_id = assignedTo;
+			if (assignees.length > 0) payload.assignee_ids = assignees;
 		} else if (taskType === 'checklist') {
 			payload.checklist_items = checklistItems;
 		}
@@ -102,7 +114,7 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 				setTitle('');
 				setDescription('');
 				setChecklistItems([]);
-				setAssignedTo('');
+				setAssignees([]);
 				onSuccess();
 				onClose();
 			} else {
@@ -122,8 +134,8 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 			setTitle('');
 			setDescription('');
 			setChecklistItems([]);
-			if (initialAssignee) setAssignedTo(initialAssignee);
-			else setAssignedTo('');
+			if (initialAssignee) setAssignees([Number(initialAssignee)]);
+			else setAssignees([]);
 		}
 	}, [isOpen, initialAssignee]);
 
@@ -168,13 +180,43 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 
 				{taskType === 'assignment' && members && (
 					<div className="form-group">
-						<label>Assign To (Optional)</label>
-						<select className="glass-input" value={assignedTo} onChange={e => setAssignedTo(e.target.value)} style={{ background: '#1e293b' }}>
-							<option value="">-- Everyone --</option>
+						<label>Assign To (Select multiple)</label>
+						<div style={{ maxHeight: '150px', overflowY: 'auto', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '8px' }}>
+							{/* Everyone Option */}
+							<div onClick={() => toggleAssignee('everyone')} style={{
+								display: 'flex', alignItems: 'center', gap: '10px', padding: '6px',
+								cursor: 'pointer', borderRadius: '4px',
+								background: assignees.length === 0 ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+								marginBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.05)'
+							}}>
+								<div style={{
+									width: '18px', height: '18px', borderRadius: '4px', border: '2px solid #6366f1',
+									display: 'grid', placeItems: 'center',
+									background: assignees.length === 0 ? '#6366f1' : 'transparent'
+								}}>
+									{assignees.length === 0 && <span style={{ fontSize: '12px', color: '#fff' }}>✓</span>}
+								</div>
+								<span style={{ color: '#fff', fontStyle: 'italic' }}>Everyone</span>
+							</div>
+
 							{members.map(m => (
-								<option key={m.id} value={m.id}>{m.username}</option>
+								<div key={m.id} onClick={() => toggleAssignee(m.id)} style={{
+									display: 'flex', alignItems: 'center', gap: '10px', padding: '6px',
+									cursor: 'pointer', borderRadius: '4px',
+									background: assignees.includes(m.id) ? 'rgba(99, 102, 241, 0.2)' : 'transparent'
+								}}>
+									<div style={{
+										width: '18px', height: '18px', borderRadius: '4px', border: '2px solid #6366f1',
+										display: 'grid', placeItems: 'center',
+										background: assignees.includes(m.id) ? '#6366f1' : 'transparent'
+									}}>
+										{assignees.includes(m.id) && <span style={{ fontSize: '12px', color: '#fff' }}>✓</span>}
+									</div>
+									<span style={{ color: '#cbd5e1' }}>{m.username}</span>
+								</div>
 							))}
-						</select>
+						</div>
+						<small style={{ color: '#64748b', marginTop: '4px', display: 'block' }}>Select specific members or choose Everyone.</small>
 					</div>
 				)}
 
@@ -208,23 +250,66 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 	);
 };
 
-export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelete }) => {
+export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelete, members }) => {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editTitle, setEditTitle] = useState('');
 	const [editDescription, setEditDescription] = useState('');
+	const [editChecklistItems, setEditChecklistItems] = useState([]);
+	const [editAssignees, setEditAssignees] = useState([]);
 
 	React.useEffect(() => {
 		if (task) {
 			setEditTitle(task.title);
 			setEditDescription(task.description);
+			setEditChecklistItems(task.checklist_items ? JSON.parse(JSON.stringify(task.checklist_items)) : []);
+			// Map assignees objects to IDs
+			setEditAssignees(task.assignees ? task.assignees.map(u => u.id) : []);
 			setIsEditing(false);
 		}
 	}, [task, isOpen]);
 
 	if (!task) return null;
 
+	const handleChecklistChange = (index, value) => {
+		const newItems = [...editChecklistItems];
+		newItems[index] = { ...newItems[index], content: value };
+		setEditChecklistItems(newItems);
+	};
+
+	const removeEditChecklistItem = (index) => {
+		setEditChecklistItems(editChecklistItems.filter((_, i) => i !== index));
+	};
+
+	const addEditChecklistItem = () => {
+		setEditChecklistItems([...editChecklistItems, { content: '', is_checked: false }]);
+	};
+
+	const toggleEditAssignee = (memberId) => {
+		if (memberId === 'everyone') {
+			setEditAssignees([]);
+		} else {
+			if (editAssignees.includes(memberId)) {
+				setEditAssignees(prev => prev.filter(id => id !== memberId));
+			} else {
+				setEditAssignees(prev => [...prev, memberId]);
+			}
+		}
+	};
+
 	const handleSave = async () => {
 		const token = localStorage.getItem('token');
+
+		const payload = {
+			title: editTitle,
+			description: editDescription
+		};
+
+		if (task.task_type === 'checklist') {
+			payload.checklist_items = editChecklistItems;
+		} else if (task.task_type === 'assignment') {
+			payload.assignee_ids = editAssignees;
+		}
+
 		try {
 			const res = await fetch(`/api/tasks/${task.id}/`, {
 				method: 'PATCH',
@@ -232,10 +317,7 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 					'Content-Type': 'application/json',
 					'Authorization': `Token ${token}`
 				},
-				body: JSON.stringify({
-					title: editTitle,
-					description: editDescription
-				})
+				body: JSON.stringify(payload)
 			});
 			if (res.ok) {
 				onUpdate();
@@ -280,7 +362,11 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 	};
 
 	// Determine if user can complete (Assignment logic)
-	const canComplete = task.task_type === 'assignment' && (!task.assigned_to || task.assigned_to.id === user.id);
+	// Can complete if assigned to me OR if no one is assigned (assuming 'everyone')
+	const isAssignedToMe = task.assignees && task.assignees.some(u => u.id === user.id);
+	const isAssignedToNoOne = !task.assignees || task.assignees.length === 0;
+	const canComplete = task.task_type === 'assignment' && (isAssignedToMe || isAssignedToNoOne);
+
 	// Determine if user can delete (Creator only)
 	const canDelete = task.created_by.id === user.id;
 	const canEdit = task.created_by.id === user.id;
@@ -298,7 +384,46 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 								onChange={e => setEditTitle(e.target.value)}
 							/>
 						</div>
-						{task.task_type !== 'checklist' && (
+
+						{task.task_type === 'checklist' ? (
+							<div>
+								<label style={{ fontSize: '12px', color: '#94a3b8' }}>Checklist Items</label>
+								<div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+									{editChecklistItems.map((item, idx) => (
+										<div key={idx} style={{ display: 'flex', gap: '8px' }}>
+											<input
+												className="glass-input"
+												value={item.content}
+												onChange={e => handleChecklistChange(idx, e.target.value)}
+												placeholder="Item content"
+											/>
+											<button
+												type="button"
+												onClick={() => removeEditChecklistItem(idx)}
+												style={{
+													color: '#f87171',
+													background: 'rgba(239, 68, 68, 0.1)',
+													border: 'none',
+													borderRadius: '4px',
+													cursor: 'pointer',
+													padding: '0 12px'
+												}}
+											>
+												&times;
+											</button>
+										</div>
+									))}
+									<button
+										type="button"
+										onClick={addEditChecklistItem}
+										className="primary-btn"
+										style={{ padding: '8px', fontSize: '13px', marginTop: '4px', background: 'rgba(99, 102, 241, 0.2)', border: '1px solid rgba(99, 102, 241, 0.4)' }}
+									>
+										+ Add Item
+									</button>
+								</div>
+							</div>
+						) : (
 							<div>
 								<label style={{ fontSize: '12px', color: '#94a3b8' }}>{task.task_type === 'note' ? 'Content' : 'Description'}</label>
 								<textarea
@@ -308,6 +433,47 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 									onChange={e => setEditDescription(e.target.value)}
 									style={{ resize: 'vertical' }}
 								/>
+							</div>
+						)}
+						{/* Edit Assignees for Assignment */}
+						{task.task_type === 'assignment' && members && (
+							<div>
+								<label style={{ fontSize: '12px', color: '#94a3b8' }}>Assignees</label>
+								<div style={{ maxHeight: '150px', overflowY: 'auto', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '8px', marginTop: '4px' }}>
+									{/* Everyone Option */}
+									<div onClick={() => toggleEditAssignee('everyone')} style={{
+										display: 'flex', alignItems: 'center', gap: '10px', padding: '6px',
+										cursor: 'pointer', borderRadius: '4px',
+										background: editAssignees.length === 0 ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+										marginBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.05)'
+									}}>
+										<div style={{
+											width: '18px', height: '18px', borderRadius: '4px', border: '2px solid #6366f1',
+											display: 'grid', placeItems: 'center',
+											background: editAssignees.length === 0 ? '#6366f1' : 'transparent'
+										}}>
+											{editAssignees.length === 0 && <span style={{ fontSize: '12px', color: '#fff' }}>✓</span>}
+										</div>
+										<span style={{ color: '#fff', fontStyle: 'italic' }}>Everyone</span>
+									</div>
+
+									{members.map(m => (
+										<div key={m.id} onClick={() => toggleEditAssignee(m.id)} style={{
+											display: 'flex', alignItems: 'center', gap: '10px', padding: '6px',
+											cursor: 'pointer', borderRadius: '4px',
+											background: editAssignees.includes(m.id) ? 'rgba(99, 102, 241, 0.2)' : 'transparent'
+										}}>
+											<div style={{
+												width: '18px', height: '18px', borderRadius: '4px', border: '2px solid #6366f1',
+												display: 'grid', placeItems: 'center',
+												background: editAssignees.includes(m.id) ? '#6366f1' : 'transparent'
+											}}>
+												{editAssignees.includes(m.id) && <span style={{ fontSize: '12px', color: '#fff' }}>✓</span>}
+											</div>
+											<span style={{ color: '#cbd5e1' }}>{m.username}</span>
+										</div>
+									))}
+								</div>
 							</div>
 						)}
 					</div>
@@ -348,7 +514,11 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 					<div>
 						{task.task_type === 'assignment' && (
 							<div style={{ fontSize: '13px', color: '#94a3b8' }}>
-								Assigned to: <span style={{ color: '#fff' }}>{task.assigned_to ? task.assigned_to.username : 'Everyone'}</span>
+								Assigned to: <span style={{ color: '#fff' }}>
+									{task.assignees && task.assignees.length > 0
+										? task.assignees.map(u => u.username).join(', ')
+										: 'Everyone'}
+								</span>
 							</div>
 						)}
 						<div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>

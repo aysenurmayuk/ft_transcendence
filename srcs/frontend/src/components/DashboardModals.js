@@ -78,7 +78,7 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 	const [taskType, setTaskType] = useState('assignment');
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
-	const [assignedTo, setAssignedTo] = useState('');
+	const [assignees, setAssignees] = useState([]);
 	const [checklistItems, setChecklistItems] = useState([]);
 	const [newItem, setNewItem] = useState('');
 
@@ -204,12 +204,13 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 				{taskType === 'assignment' && members && (
 					<div>
 						<label className="form-label text-muted small fw-medium">Assign To (Optional)</label>
-						<select
-							className="form-select border-secondary modal-input"
-							value={assignedTo}
-							onChange={e => setAssignedTo(e.target.value)}
-						>
-							<option value="">-- Everyone --</option>
+						<div className="border border-secondary rounded p-2 modal-input" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+							<div
+								onClick={() => toggleAssignee('everyone')}
+								className={`p-2 mb-1 rounded cursor-pointer ${assignees.length === 0 ? 'bg-primary text-white' : 'text-muted'}`}
+							>
+								-- Everyone --
+							</div>
 							{members.map(m => (
 								<div key={m.id} onClick={() => toggleAssignee(m.id)} style={{
 									display: 'flex', alignItems: 'center', gap: '10px', padding: '6px',
@@ -318,6 +319,8 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 	const [editTitle, setEditTitle] = useState('');
 	const [editDescription, setEditDescription] = useState('');
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+	const [editChecklistItems, setEditChecklistItems] = useState([]);
+	const [editAssignees, setEditAssignees] = useState([]);
 
 	React.useEffect(() => {
 		if (task) {
@@ -430,140 +433,140 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 	return (
 		<>
 			<div className={`task-theme-${task.task_type}`}>
-			<BootstrapModal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Edit Item' : task.title}>
-				<div className="mb-3">
-					{isEditing ? (
-						<div className="d-flex flex-column gap-3">
-							<div>
-								<label className="form-label text-muted small fw-medium">Title</label>
-								<input
-									className="form-control border-secondary modal-input"
-									value={editTitle}
-									onChange={e => setEditTitle(e.target.value)}
-								/>
-							</div>
-							{task.task_type !== 'checklist' && (
+				<BootstrapModal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Edit Item' : task.title}>
+					<div className="mb-3">
+						{isEditing ? (
+							<div className="d-flex flex-column gap-3">
 								<div>
-									<label className="form-label text-muted small fw-medium">
-										{task.task_type === 'note' ? 'Content' : 'Description'}
-									</label>
-									<textarea
-										className="form-control border-secondary textarea-resize-v modal-input"
-										rows="5"
-										value={editDescription}
-										onChange={e => setEditDescription(e.target.value)}
+									<label className="form-label text-muted small fw-medium">Title</label>
+									<input
+										className="form-control border-secondary modal-input"
+										value={editTitle}
+										onChange={e => setEditTitle(e.target.value)}
 									/>
 								</div>
-							)}
-						</div>
-					) : (
-						<>
-							<div
-								className="badge text-capitalize mb-3 task-detail-badge"
-							>
-								<i className={`fa-solid ${task.task_type === 'note' ? 'fa-note-sticky' :
-									task.task_type === 'checklist' ? 'fa-list-check' : 'fa-clipboard-check'
-									} me-2`}></i>
-								{task.task_type} • {task.status.replace('_', ' ')}
+								{task.task_type !== 'checklist' && (
+									<div>
+										<label className="form-label text-muted small fw-medium">
+											{task.task_type === 'note' ? 'Content' : 'Description'}
+										</label>
+										<textarea
+											className="form-control border-secondary textarea-resize-v modal-input"
+											rows="5"
+											value={editDescription}
+											onChange={e => setEditDescription(e.target.value)}
+										/>
+									</div>
+								)}
 							</div>
-							{task.task_type === 'checklist' ? (
-								<div className="d-flex flex-column gap-2">
-									{task.checklist_items && task.checklist_items.map(item => (
-										<div
-											key={item.id}
-											onClick={() => toggleChecklistItem(item.id)}
-											className={`d-flex align-items-center gap-3 p-3 rounded border checklist-item-row cursor-pointer ${item.is_checked ? 'opacity-50 checked' : ''}`}
-										>
-											<div
-												className={`d-flex align-items-center justify-content-center rounded flex-shrink-0 checklist-checkbox ${item.is_checked ? 'checked' : ''}`}
-												style={{ width: '20px', height: '20px', borderRadius: '4px', border: '2px solid' }}
-											>
-												{item.is_checked && <i className="fa-solid fa-check text-white" style={{ fontSize: '10px' }}></i>}
-											</div>
-											<span className={`${item.is_checked ? 'text-decoration-line-through' : ''}`}>
-												{item.content}
-											</span>
-										</div>
-									))}
-								</div>
-							) : (
-								<div className="task-detail-description">
-									{task.description || <em className="text-muted">No details provided.</em>}
-								</div>
-							)}
-						</>
-					)}
-				</div>
-
-				<div className="task-detail-footer">
-					{!isEditing && (
-						<div>
-							{task.task_type === 'assignment' && (
-								<div className="small text-muted mb-1">
-									<i className="fa-solid fa-user me-2" style={{ fontSize: '11px' }}></i>
-									Assigned to: <span className="text-body fw-medium">
-										{task.assigned_to ? task.assigned_to.username : 'Everyone'}
-									</span>
-								</div>
-							)}
-							<div className="text-secondary task-meta-text">
-								<i className="fa-regular fa-user me-2" style={{ fontSize: '11px' }}></i>
-								Created by {task.created_by.username}
-							</div>
-						</div>
-					)}
-
-					<div className="d-flex gap-2 ms-auto">
-						{isEditing ? (
-							<>
-								<button
-									onClick={() => setIsEditing(false)}
-									className="btn btn-outline-secondary btn-sm task-action-btn"
-								>
-									Cancel
-								</button>
-								<button
-									onClick={handleSave}
-									className="btn btn-primary btn-sm task-action-btn"
-								>
-									<i className="fa-solid fa-check me-1"></i>
-									Save
-								</button>
-							</>
 						) : (
 							<>
-								{canEdit && (
-									<button
-										onClick={() => setIsEditing(true)}
-										className="btn btn-outline-primary btn-sm task-action-btn"
-									>
-										<i className="fa-solid fa-pen me-1"></i>
-										Edit
-									</button>
-								)}
-								{canDelete && (
-									<button
-										onClick={() => setShowDeleteConfirm(true)}
-										className="btn btn-outline-danger btn-sm task-action-btn"
-									>
-										<i className="fa-solid fa-trash me-1"></i>
-										Delete
-									</button>
-								)}
-								{canComplete && (
-									<button
-										onClick={completeTask}
-										className="btn btn-success btn-sm task-action-btn"
-									>
-										<i className="fa-solid fa-check me-1"></i>
-										Complete
-									</button>
+								<div
+									className="badge text-capitalize mb-3 task-detail-badge"
+								>
+									<i className={`fa-solid ${task.task_type === 'note' ? 'fa-note-sticky' :
+										task.task_type === 'checklist' ? 'fa-list-check' : 'fa-clipboard-check'
+										} me-2`}></i>
+									{task.task_type} • {task.status.replace('_', ' ')}
+								</div>
+								{task.task_type === 'checklist' ? (
+									<div className="d-flex flex-column gap-2">
+										{task.checklist_items && task.checklist_items.map(item => (
+											<div
+												key={item.id}
+												onClick={() => toggleChecklistItem(item.id)}
+												className={`d-flex align-items-center gap-3 p-3 rounded border checklist-item-row cursor-pointer ${item.is_checked ? 'opacity-50 checked' : ''}`}
+											>
+												<div
+													className={`d-flex align-items-center justify-content-center rounded flex-shrink-0 checklist-checkbox ${item.is_checked ? 'checked' : ''}`}
+													style={{ width: '20px', height: '20px', borderRadius: '4px', border: '2px solid' }}
+												>
+													{item.is_checked && <i className="fa-solid fa-check text-white" style={{ fontSize: '10px' }}></i>}
+												</div>
+												<span className={`${item.is_checked ? 'text-decoration-line-through' : ''}`}>
+													{item.content}
+												</span>
+											</div>
+										))}
+									</div>
+								) : (
+									<div className="task-detail-description">
+										{task.description || <em className="text-muted">No details provided.</em>}
+									</div>
 								)}
 							</>
 						)}
 					</div>
-				</div>
-			</BootstrapModal>
+
+					<div className="task-detail-footer">
+						{!isEditing && (
+							<div>
+								{task.task_type === 'assignment' && (
+									<div className="small text-muted mb-1">
+										<i className="fa-solid fa-user me-2" style={{ fontSize: '11px' }}></i>
+										Assigned to: <span className="text-body fw-medium">
+											{task.assigned_to ? task.assigned_to.username : 'Everyone'}
+										</span>
+									</div>
+								)}
+								<div className="text-secondary task-meta-text">
+									<i className="fa-regular fa-user me-2" style={{ fontSize: '11px' }}></i>
+									Created by {task.created_by.username}
+								</div>
+							</div>
+						)}
+
+						<div className="d-flex gap-2 ms-auto">
+							{isEditing ? (
+								<>
+									<button
+										onClick={() => setIsEditing(false)}
+										className="btn btn-outline-secondary btn-sm task-action-btn"
+									>
+										Cancel
+									</button>
+									<button
+										onClick={handleSave}
+										className="btn btn-primary btn-sm task-action-btn"
+									>
+										<i className="fa-solid fa-check me-1"></i>
+										Save
+									</button>
+								</>
+							) : (
+								<>
+									{canEdit && (
+										<button
+											onClick={() => setIsEditing(true)}
+											className="btn btn-outline-primary btn-sm task-action-btn"
+										>
+											<i className="fa-solid fa-pen me-1"></i>
+											Edit
+										</button>
+									)}
+									{canDelete && (
+										<button
+											onClick={() => setShowDeleteConfirm(true)}
+											className="btn btn-outline-danger btn-sm task-action-btn"
+										>
+											<i className="fa-solid fa-trash me-1"></i>
+											Delete
+										</button>
+									)}
+									{canComplete && (
+										<button
+											onClick={toggleTaskStatus}
+											className="btn btn-success btn-sm task-action-btn"
+										>
+											<i className="fa-solid fa-check me-1"></i>
+											Complete
+										</button>
+									)}
+								</>
+							)}
+						</div>
+					</div>
+				</BootstrapModal>
 			</div>
 
 			<ConfirmationModal

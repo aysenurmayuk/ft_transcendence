@@ -1,16 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { CreateCircleModal, CreateTaskModal, InviteModal, JoinCircleModal, TaskDetailModal, MembersModal, SudokuModal } from '../components/DashboardModals';
-import Toast from '../components/Toast';
 import './Dashboard.css';
+import { CreateCircleModal, CreateTaskModal, InviteModal, JoinCircleModal, TaskDetailModal, ConfirmationModal } from '../components/DashboardModals';
+import Sudoku from './Sudoku';
+import DashboardSidebar from '../components/DashboardSidebar';
+import DashboardTopbar from '../components/DashboardTopbar';
+import DashboardSettings from '../components/DashboardSettings';
+import DashboardMembers from '../components/DashboardMembers';
+import DashboardTasks from '../components/DashboardTasks'; // Ensure this import exists
+import DashboardChat from '../components/DashboardChat';
+import Toast from '../components/Toast';
 
 const Dashboard = () => {
 	// Layout States
-	const [sidebarOpen, setSidebarOpen] = useState(true);
+	const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+	const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
 	const [comboOpen, setComboOpen] = useState(false);
+	const [activeView, setActiveView] = useState('dashboard');
+	const [darkMode, setDarkMode] = useState(true);
+
+	useEffect(() => {
+		document.documentElement.setAttribute('data-bs-theme', darkMode ? 'dark' : 'light');
+	}, [darkMode]);
+	const toggleTheme = () => setDarkMode(!darkMode);
+
+	useEffect(() => {
+		const handleResize = () => {
+			const mobile = window.innerWidth < 768;
+			setIsMobile(mobile);
+			if (mobile) setSidebarOpen(false);
+		};
+		window.addEventListener('resize', handleResize);
+		return () => window.removeEventListener('resize', handleResize);
+	}, []);
 
 	// Feature States
 	const [chatOpen, setChatOpen] = useState(false);
-	const [settingsOpen, setSettingsOpen] = useState(false);
 
 	// Data States
 	const [selectedEnv, setSelectedEnv] = useState(null); // Full Circle Object
@@ -54,9 +78,17 @@ const Dashboard = () => {
 	const [showCreateTask, setShowCreateTask] = useState(false);
 	const [showInvite, setShowInvite] = useState(false);
 	const [showJoin, setShowJoin] = useState(false);
-	const [showMembers, setShowMembers] = useState(false);
-	const [showSudoku, setShowSudoku] = useState(false);
+	const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+	const [circleToLeave, setCircleToLeave] = useState(null);
 
+	const showToast = (content, sender = 'System') => {
+		setToasts(prev => [...prev, {
+			id: Date.now(),
+			sender,
+			content,
+			raw_data: {}
+		}]);
+	};
 
 
 	const handleNotificationClick = async (notif) => {
@@ -85,7 +117,6 @@ const Dashboard = () => {
 				setSelectedEnv(circle);
 				setActiveChatMode('circle');
 				setChatOpen(true);
-				setSettingsOpen(false);
 			}
 		} else if (['task_assigned', 'note_created', 'checklist_created', 'task_completed'].includes(notif.type)) {
 			// Find circle and switch
@@ -127,7 +158,7 @@ const Dashboard = () => {
 			});
 
 			if (res.ok) {
-				alert("Member kicked successfully");
+				showToast("Member kicked successfully");
 				// Refresh circle data
 				fetchCircles(); // This updates myCircles which updates selectedEnv eventually
 				// But we need to update selectedEnv explicitly if it doesn't auto-update
@@ -141,34 +172,40 @@ const Dashboard = () => {
 				setMyCircles(prev => prev.map(c => c.id === circleId ? updatedCircle : c));
 			} else {
 				const err = await res.json();
-				alert('Error kicking member: ' + (JSON.stringify(err.error) || res.statusText));
+				showToast('Error kicking member: ' + (JSON.stringify(err.error) || res.statusText), 'Error');
 			}
-		} catch (e) { console.error(e); alert('Network error'); }
+		} catch (e) { console.error(e); showToast('Network error', 'Error'); }
 	};
 
-	const handleLeaveCircle = async (circleId) => {
-		if (!window.confirm("Are you sure you want to leave this circle?")) return;
+	const handleLeaveCircle = (circleId) => {
+		setCircleToLeave(circleId);
+		setShowLeaveConfirm(true);
+	};
 
+	const executeLeaveCircle = async () => {
+		if (!circleToLeave) return;
 		const token = localStorage.getItem('token');
 		try {
-			const res = await fetch(`/api/circles/${circleId}/leave/`, {
+			const res = await fetch(`/api/circles/${circleToLeave}/leave/`, {
 				method: 'POST',
 				headers: { 'Authorization': `Token ${token}` }
 			});
 
 			if (res.ok) {
-				alert("You have left the circle.");
+				showToast("You have left the circle.");
 				// Remove from myCircles
-				const updatedCircles = myCircles.filter(c => c.id !== circleId);
+				const updatedCircles = myCircles.filter(c => c.id !== circleToLeave);
 				setMyCircles(updatedCircles);
 				// Update selectedEnv
 				if (updatedCircles.length > 0) setSelectedEnv(updatedCircles[0]);
 				else setSelectedEnv(null);
-				setShowMembers(false);
+				setActiveView('dashboard');
 			} else {
-				alert("Failed to leave circle.");
+				showToast("Failed to leave circle.", "Error");
 			}
 		} catch (e) { console.error(e); }
+		setShowLeaveConfirm(false);
+		setCircleToLeave(null);
 	};
 
 	const [onlineUsers, setOnlineUsers] = useState(new Set());
@@ -363,7 +400,7 @@ const Dashboard = () => {
 		if ((activeChatMode === 'circle' && selectedEnv) || (activeChatMode === 'dm' && dmTarget)) {
 			const token = localStorage.getItem('token');
 			if (!token) {
-				alert("Authentication token missing. Please login again.");
+				showToast("Authentication token missing. Please login again.", "Error");
 				return;
 			}
 			if (ws.current) ws.current.close();
@@ -433,6 +470,13 @@ const Dashboard = () => {
 		}
 	}, [selectedEnv]);
 
+	// Auto-select circle if none selected but circles exist
+	useEffect(() => {
+		if (myCircles.length > 0 && !selectedEnv) {
+			setSelectedEnv(myCircles[0]);
+		}
+	}, [myCircles, selectedEnv]);
+
 	// Helpers
 	const sendMessage = (e) => {
 		e.preventDefault();
@@ -450,7 +494,6 @@ const Dashboard = () => {
 		setDmTarget(targetUser);
 		setActiveChatMode('dm');
 		setChatOpen(true);
-		setSettingsOpen(false);
 	};
 
 	const returnToTeamChat = () => {
@@ -497,9 +540,9 @@ const Dashboard = () => {
 				const updatedCircle = await res.json();
 				setSelectedEnv(updatedCircle);
 				setMyCircles(prev => prev.map(c => c.id === updatedCircle.id ? updatedCircle : c));
-				alert("Circle settings updated!");
+				showToast("Circle settings updated!");
 			} else {
-				alert("Failed to update circle name.");
+				showToast("Failed to update circle name.", "Error");
 			}
 		} catch (err) {
 			console.error(err);
@@ -528,17 +571,16 @@ const Dashboard = () => {
 			if (res.ok) {
 				const updatedUser = await res.json();
 				setUser(updatedUser);
-				setSettingsOpen(false);
-				alert("Profile updated successfully!");
+				showToast("Profile updated successfully!");
 				localStorage.setItem('user', JSON.stringify(updatedUser));
 				window.location.reload();
 			} else {
 				const err = await res.json();
-				alert('Update failed: ' + JSON.stringify(err));
+				showToast('Update failed: ' + JSON.stringify(err), 'Error');
 			}
 		} catch (err) {
 			console.error(err);
-			alert("Network error");
+			showToast("Network error", 'Error');
 		}
 	};
 
@@ -574,8 +616,8 @@ const Dashboard = () => {
 	};
 
 	// Close one sidebar if other opens
-	const openChat = () => { setSettingsOpen(false); setChatOpen(true); };
-	const openSettings = () => { setChatOpen(false); setSettingsOpen(true); };
+	const openChat = () => { setChatOpen(true); };
+	const openSettings = () => { setActiveView('settings'); };
 
 	const openTaskDetail = (task) => {
 		setSelectedTask(task);
@@ -584,8 +626,8 @@ const Dashboard = () => {
 
 
 	return (
-		<div className="dashboard-body">
-			<div className="toast-container">
+		<div className="dashboard-container">
+			<div className="toast-container position-fixed bottom-0 end-0 p-3">
 				{toasts.map(toast => (
 					<Toast
 						key={toast.id}
@@ -593,7 +635,7 @@ const Dashboard = () => {
 						onClose={() => removeToast(toast.id)}
 						onClick={() => {
 							handleNotificationClick({
-								type: toast.sender === 'System' ? 'system' : (toast.raw_data && toast.raw_data.type ? toast.raw_data.type : (toast.content.startsWith('DM from') ? 'direct_message' : 'circle_message')),
+								type: toast.sender === 'System' ? 'system' : (toast.content.startsWith('DM from') ? 'direct_message' : 'circle_message'),
 								...toast.raw_data
 							});
 							removeToast(toast.id);
@@ -601,380 +643,111 @@ const Dashboard = () => {
 					/>
 				))}
 			</div>
-			<div className="frame">
+			
+			<DashboardSidebar
+				sidebarOpen={sidebarOpen}
+				toggleSidebar={toggleSidebar}
+				activeView={activeView}
+				setActiveView={setActiveView}
+				chatOpen={chatOpen}
+				setChatOpen={setChatOpen}
+				openChat={openChat}
+				isMobile={isMobile}
+			/>
 
-				{/* Left Sidebar */}
-				<aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-					<div className="sidebar-header">
-						<button className="toggle" onClick={toggleSidebar}>
-							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-								<path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" strokeLinejoin="round" />
-							</svg>
-						</button>
-						<div className="sidebar-title">PLANORA</div>
-					</div>
+			{isMobile && (sidebarOpen || chatOpen) && (
+				<div className="modal-backdrop fade show modal-backdrop-custom" onClick={() => {
+					if (sidebarOpen) setSidebarOpen(false);
+					if (chatOpen) setChatOpen(false);
+				}}></div>
+			)}
 
-					<nav className="nav">
-						<div className="nav-item active" onClick={() => { setChatOpen(false); setSettingsOpen(false); }}>
-							<div className="icon">🏠</div>
-							<div className="label">Dashboard</div>
-						</div>
-						<div className="nav-item" onClick={() => setShowMembers(true)}>
-							<div className="icon">👥</div>
-							<div className="label">Members</div>
-						</div>
-						<div className={`nav-item ${chatOpen ? 'active' : ''}`} onClick={() => chatOpen ? setChatOpen(false) : openChat()}>
-							<div className="icon">💬</div>
-							<div className="label">Chat</div>
-						</div>
-						<div className="nav-item" onClick={() => setShowSudoku(true)}>
-							<div className="icon">🧩</div>
-							<div className="label">Sudoku</div>
-						</div>
-						<div className={`nav-item ${settingsOpen ? 'active' : ''}`} onClick={() => settingsOpen ? setSettingsOpen(false) : openSettings()}>
-							<div className="icon">⚙️</div>
-							<div className="label">Settings</div>
-						</div>
-					</nav>
-				</aside>
+			<div className="main-content">
+				<DashboardTopbar
+					comboOpen={comboOpen}
+					toggleCombo={toggleCombo}
+					toggleSidebar={toggleSidebar}
+					selectedEnv={selectedEnv}
+					myCircles={myCircles}
+					selectEnv={selectEnv}
+					setShowInvite={setShowInvite}
+					notifications={notifications}
+					showNotifications={showNotifications}
+					setShowNotifications={setShowNotifications}
+					handleNotificationClick={handleNotificationClick}
+					setNotifications={setNotifications}
+					user={user}
+					openSettings={openSettings}
+					startDM={startDM}
+					darkMode={darkMode}
+					toggleTheme={toggleTheme}
+					isMobile={isMobile}
+					handleLeaveCircle={handleLeaveCircle}
+				/>
 
-				{/* Right Content */}
-				<div className="content-wrap">
-					<header className="topbar">
-						{/* Combobox */}
-						<div className={`combo ${comboOpen ? 'open' : ''} `} id="combo">
-							<button
-								className="combo-btn"
-								type="button"
-								onClick={(e) => { e.stopPropagation(); toggleCombo(); }}
-							>
-								<span className="value">
-									{selectedEnv ? selectedEnv.name : 'Select Circle'}
-								</span>
-								<div className="chev"></div>
-							</button>
-							<div className="combo-menu">
-								{myCircles.map(circle => (
-									<div key={circle.id} className="combo-item" onClick={() => selectEnv(circle)}>
-										{circle.name}
-									</div>
-								))}
-								<div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '4px 0' }}></div>
-								<div className="combo-item" onClick={() => selectEnv('create')} style={{ color: '#818cf8' }}>
-									+ Create New Circle
-								</div>
-								<div className="combo-item" onClick={() => selectEnv('join')}>
-									# Join with Code
-								</div>
-							</div>
-						</div>
-
-						{/* Right Top Controls */}
-						<div className="top-right">
-							{/* Avatar Stack */}
-							{selectedEnv && selectedEnv.members && selectedEnv.members.length > 0 && (
-								<div className="avatar-stack" style={{ marginRight: '16px' }}>
-									{selectedEnv.members.slice(0, 3).map((member, i) => {
-										// Generate consistent color
-										let hash = 0;
-										for (let k = 0; k < member.username.length; k++) {
-											hash = member.username.charCodeAt(k) + ((hash << 5) - hash);
-										}
-										const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-										const color = '#' + '00000'.substring(0, 6 - c.length) + c;
-
-										return (
-											<div key={member.id} className="avatar-circle" title={member.username}
-												style={{
-													marginLeft: i > 0 ? '-12px' : '0',
-													zIndex: 10 - i,
-													background: member.avatar ? 'transparent' : color,
-													cursor: member.id !== user.id ? 'pointer' : 'default'
-												}}
-												onClick={() => startDM(member)}>
-												{member.avatar ?
-													<img src={member.avatar} alt={member.username} /> :
-													member.username.charAt(0).toUpperCase()
-												}
-											</div>
-										);
-									})}
-									{selectedEnv.members.length > 3 && (
-										<div className="avatar-circle more" style={{ marginLeft: '-12px', zIndex: 0 }}>...</div>
-									)}
-								</div>
-							)}
-
-							{selectedEnv && (
-								<div className="dots" title="Invite Members" style={{ display: 'flex', gap: '8px' }}>
-									<div className="dot plus" onClick={() => setShowInvite(true)}>+</div>
-								</div>
-							)}
-
-							{/* Notification Bell */}
-							<div style={{ position: 'relative' }}>
-								<div className="notification-bell" onClick={() => setShowNotifications(!showNotifications)}>
-									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-										<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-										<path d="M13.73 21a2 2 0 0 1-3.46 0" />
-									</svg>
-									{notifications.length > 0 && <span className="badge">{notifications.length}</span>}
-								</div>
-
-								{/* Notification Dropdown */}
-								{showNotifications && (
-									<div className="notification-menu">
-										<div className="notification-header">
-											<span>Notifications</span>
-											{notifications.length > 0 && (
-												<button className="clear-btn" onClick={() => setNotifications([])}>Clear</button>
-											)}
-										</div>
-										<div className="notification-list">
-											{notifications.length === 0 ? (
-												<div className="empty-state">No notifications</div>
-											) : (
-												notifications.map(n => (
-													<div key={n.id} className="notification-item" onClick={() => handleNotificationClick(n)}>
-														<div className="notif-icon">💬</div>
-														<div className="notif-content">
-															<div className="notif-title">{n.sender}</div>
-															<div className="notif-body">{n.content}</div>
-															<div className="notif-time">{n.timestamp.toLocaleTimeString()}</div>
-														</div>
-													</div>
-												))
-											)}
-										</div>
-									</div>
-								)}
-							</div>
-
-							<div className="profile" onClick={openSettings}>
-								{user.avatar ?
-									<img src={user.avatar} alt="Me" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} /> :
-									<span style={{ fontSize: '20px' }}>👤</span>
-								}
-								<span>{user.username || 'Guest'}</span>
-							</div>
-						</div>
-					</header>
-
-					<main className="main">
-						{!selectedEnv ? (
-							<div className="hint" style={{ textAlign: 'center', marginTop: '100px', maxWidth: '600px', margin: 'auto' }}>
-								<h3 style={{ fontSize: '24px', marginBottom: '16px' }}>Welcome to Planora</h3>
-								<p>Select a circle or create a new one to get started.</p>
-							</div>
-						) : (
-							<>
-								<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-									<div>
-										<h2 style={{ fontSize: '28px', fontWeight: 700, color: '#fff' }}>Tasks</h2>
-										<p style={{ color: 'var(--text-muted)', marginTop: '4px' }}>{selectedEnv.description}</p>
-									</div>
-									<button className="primary-btn" type="button" style={{ padding: '12px 24px', fontSize: '15px' }} onClick={() => { setPreselectedAssignee(''); setShowCreateTask(true); }}>
-										+ New Item
-									</button>
-								</div>
-
-								<div className="grid">
-									{tasks.map(task => (
-										<div className="card" key={task.id}
-											onClick={() => openTaskDetail(task)}
-											style={{
-												cursor: 'pointer',
-												borderLeft: task.task_type === 'note' ? '4px solid #facc15' : task.task_type === 'checklist' ? '4px solid #38bdf8' : '4px solid #6366f1'
-											}}>
-											<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-												<div className="tiny" style={{
-													background: task.status === 'done' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255,255,255,0.05)',
-													color: task.status === 'done' ? '#4ade80' : '#94a3b8',
-													padding: '4px 8px', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase'
-												}}>
-													{task.task_type} {task.status === 'done' && '✓'}
-												</div>
-											</div>
-
-											<div style={{ flex: 1, marginBottom: '10px' }}>
-												<div className="card-title" style={{ fontSize: '16px' }}>{task.title}</div>
-												{/* Simplified Content View */}
-												<div className="card-subtitle" style={{ marginTop: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#64748b' }}>
-													{task.task_type === 'checklist'
-														? `${task.checklist_items ? task.checklist_items.filter(i => i.is_checked).length : 0}/${task.checklist_items ? task.checklist_items.length : 0} items done`
-														: (task.description || 'No preview available')}
-												</div>
-											</div>
-
-											{/* Footer - Minimal */}
-											<div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-												{task.task_type === 'assignment' && (
-													<span style={{ fontSize: '12px', color: '#64748b' }}>Assigned: {task.assigned_to ? task.assigned_to.username : <span style={{ fontStyle: 'italic' }}>Everyone</span>}</span>
-												)}
-												<span style={{ fontSize: '11px', color: '#475569' }}>{new Date(task.created_at).toLocaleDateString()}</span>
-											</div>
-										</div>
-									))}
-								</div>
-							</>
-						)}
-					</main>
-				</div>
-
-				{/* Settings Sidebar */}
-				<div className={`settings-sidebar ${settingsOpen ? 'open' : ''}`}>
-					<div style={{ padding: '20px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-						<h2 style={{ fontSize: '18px', fontWeight: 600, color: '#fff' }}>Profile Settings</h2>
-						<button onClick={() => setSettingsOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '24px' }}>&times;</button>
-					</div>
-
-					<form onSubmit={handleUpdateProfile} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
-						<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-							<div style={{ width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.1)', background: '#1e293b' }}>
-								{profileData.avatarUrl ?
-									<img src={profileData.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> :
-									<div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', fontSize: '40px', color: '#fff' }}>👤</div>
-								}
-							</div>
-							<label htmlFor="avatar-upload" style={{ color: '#818cf8', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}>
-								Change Photo
-								<input id="avatar-upload" type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
-							</label>
-						</div>
-						{profileData.avatarUrl && (
-							<button
-								type="button"
-								onClick={() => {
-									setProfileData({ ...profileData, avatar: null, avatarUrl: '', removeAvatar: true });
-								}}
-								style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', alignSelf: 'center', marginTop: '10px' }}>
-								Remove Avatar
-							</button>
-						)}
-						<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-							<label style={{ fontSize: '13px', color: '#94a3b8' }}>Username</label>
-							<input className="glass-input" type="text" value={profileData.username} onChange={e => setProfileData({ ...profileData, username: e.target.value })} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none' }} />
-						</div>
-						<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-							<label style={{ fontSize: '13px', color: '#94a3b8' }}>Email</label>
-							<input className="glass-input" type="email" value={profileData.email} onChange={e => setProfileData({ ...profileData, email: e.target.value })} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none' }} />
-						</div>
-						<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-							<label style={{ fontSize: '13px', color: '#94a3b8' }}>New Password (Optional)</label>
-							<input className="glass-input" type="password" value={profileData.password} onChange={e => setProfileData({ ...profileData, password: e.target.value })} placeholder="Leave blank to keep current" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none' }} />
-						</div>
-						<button type="submit" className="primary-btn" style={{ justifyContent: 'center', marginTop: '12px' }}>Save Changes</button>
-
-						<div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '20px', paddingTop: '20px' }}>
-							<button
-								type="button"
-								onClick={handleLogout}
-								style={{
-									width: '100%', padding: '12px', background: 'rgba(239, 68, 68, 0.1)',
-									color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)',
-									borderRadius: '8px', cursor: 'pointer', fontWeight: 600,
-									display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-								}}
-							>
-								🚪 Logout
-							</button>
-						</div>
-					</form>
-
-					{selectedEnv && selectedEnv.admin && selectedEnv.admin.id === user.id && (
-						<div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-							<h2 style={{ fontSize: '18px', fontWeight: 600, color: '#fff', marginBottom: '20px' }}>Circle Settings</h2>
-							<form onSubmit={handleUpdateCircle} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-								<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-									<label style={{ fontSize: '13px', color: '#94a3b8' }}>Circle Name</label>
-									<input
-										className="glass-input"
-										type="text"
-										value={editingCircleName}
-										onChange={e => setEditingCircleName(e.target.value)}
-										style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none' }}
-									/>
-								</div>
-								<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-									<label style={{ fontSize: '13px', color: '#94a3b8' }}>Description</label>
-									<textarea
-										className="glass-input"
-										value={editingDescription}
-										onChange={e => setEditingDescription(e.target.value)}
-										rows={3}
-										style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#fff', outline: 'none', resize: 'vertical' }}
-									/>
-								</div>
-								<button type="submit" className="primary-btn" style={{ justifyContent: 'center' }}>Save Settings</button>
-							</form>
-						</div>
+				<main className={`content-area view-${activeView}`}>
+					{activeView === 'sudoku' ? (
+						<Sudoku circleId={selectedEnv?.id} showToast={showToast} />
+					) : activeView === 'settings' ? (
+						<DashboardSettings
+							profileData={profileData}
+							setProfileData={setProfileData}
+							handleUpdateProfile={handleUpdateProfile}
+							handleFileChange={handleFileChange}
+							handleLogout={handleLogout}
+							selectedEnv={selectedEnv}
+							user={user}
+							editingCircleName={editingCircleName}
+							setEditingCircleName={setEditingCircleName}
+							editingDescription={editingDescription}
+							setEditingDescription={setEditingDescription}
+							handleUpdateCircle={handleUpdateCircle}
+						/>
+					) : activeView === 'members' ? (
+						<DashboardMembers
+							selectedEnv={selectedEnv}
+							user={user}
+							onlineUsers={onlineUsers}
+							startDM={startDM}
+							setPreselectedAssignee={setPreselectedAssignee}
+							setShowCreateTask={setShowCreateTask}
+							handleKick={handleKick}
+							handleLeaveCircle={handleLeaveCircle}
+						/>
+					) : (
+						<DashboardTasks
+							selectedEnv={selectedEnv}
+							tasks={tasks}
+							setPreselectedAssignee={setPreselectedAssignee}
+							setShowCreateTask={setShowCreateTask}
+							openTaskDetail={openTaskDetail}
+							onCreateCircle={() => selectEnv('create')}
+						/>
 					)}
-				</div>
-
-				{/* Chat Sidebar */}
-				<div className={`chat-sidebar ${chatOpen ? 'open' : ''}`}>
-					<div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)' }}>
-						<div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-							{activeChatMode === 'dm' && (
-								<button onClick={returnToTeamChat} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', marginRight: '4px' }}>
-									←
-								</button>
-							)}
-							<span style={{ fontSize: '18px' }}>{activeChatMode === 'dm' ? '👤' : '💬'}</span>
-							<h2 style={{ fontSize: '16px', fontWeight: 600, color: '#fff' }}>
-								{activeChatMode === 'dm' ? (dmTarget ? dmTarget.username : 'Chat') : 'Team Chat'}
-							</h2>
-						</div>
-						<button onClick={() => setChatOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '20px' }}>&times;</button>
-					</div>
-
-					<div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-						{selectedEnv ? messages.map((msg, idx) => {
-							const isMyMessage = msg.sender?.username === user.username;
-							return (
-								<div key={idx} style={{
-									display: 'flex', flexDirection: 'column', alignItems: isMyMessage ? 'flex-end' : 'flex-start', marginBottom: '8px'
-								}}>
-									{!isMyMessage && <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px', marginLeft: '4px' }}>{msg.sender?.username}</div>}
-									<div style={{
-										background: isMyMessage ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : '#334155',
-										color: '#fff', padding: '10px 14px', borderRadius: isMyMessage ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-										maxWidth: '85%', wordBreak: 'break-word', fontSize: '14px', lineHeight: '1.5', boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
-									}}>
-										{msg.content}
-									</div>
-								</div>
-							);
-						}) : <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
-							{activeChatMode === 'dm' ? 'Start a conversation' : 'Select a circle to chat'}
-						</div>}
-						<div ref={messagesEndRef} />
-					</div>
-
-					{selectedEnv && (
-						<form onSubmit={sendMessage} style={{ padding: '16px', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-							<div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '24px', padding: '6px', border: '1px solid rgba(255,255,255,0.05)' }}>
-								<input
-									style={{ flex: 1, background: 'transparent', border: 'none', padding: '8px 12px', color: '#fff', outline: 'none', opacity: isConnected ? 1 : 0.5 }}
-									value={chatInput}
-									onChange={e => setChatInput(e.target.value)}
-									placeholder={isConnected ? "Message..." : "Connecting..."}
-									disabled={!isConnected}
-								/>
-								<button type="submit" disabled={!isConnected} style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', background: isConnected ? '#6366f1' : '#475569', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isConnected ? 'pointer' : 'default' }}>
-									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-								</button>
-							</div>
-						</form>
-					)}
-				</div>
-
+				</main>
 			</div>
 
+			<DashboardChat
+				chatOpen={chatOpen}
+				setChatOpen={setChatOpen}
+				activeChatMode={activeChatMode}
+				dmTarget={dmTarget}
+				returnToTeamChat={returnToTeamChat}
+				selectedEnv={selectedEnv}
+				messages={messages}
+				user={user}
+				sendMessage={sendMessage}
+				chatInput={chatInput}
+				setChatInput={setChatInput}
+				isConnected={isConnected}
+				messagesEndRef={messagesEndRef}
+				isMobile={isMobile}
+			/>
+
 			{/* Modal Components */}
-			<CreateCircleModal isOpen={showCreateCircle} onClose={() => setShowCreateCircle(false)} onSuccess={(newCircle) => { setMyCircles([...myCircles, newCircle]); setSelectedEnv(newCircle); }} />
-			<InviteModal isOpen={showInvite} onClose={() => setShowInvite(false)} inviteCode={selectedEnv?.invite_code} />
-			<JoinCircleModal isOpen={showJoin} onClose={() => setShowJoin(false)} onSuccess={(c) => { if (!myCircles.find(x => x.id === c.id)) setMyCircles([...myCircles, c]); setSelectedEnv(c); }} />
+			<CreateCircleModal isOpen={showCreateCircle} onClose={() => setShowCreateCircle(false)} onSuccess={(newCircle) => { setMyCircles([...myCircles, newCircle]); setSelectedEnv(newCircle); }} showToast={showToast} />
+			<InviteModal isOpen={showInvite} onClose={() => setShowInvite(false)} inviteCode={selectedEnv?.invite_code} showToast={showToast} />
+			<JoinCircleModal isOpen={showJoin} onClose={() => setShowJoin(false)} onSuccess={(c) => { if (!myCircles.find(x => x.id === c.id)) setMyCircles([...myCircles, c]); setSelectedEnv(c); }} showToast={showToast} />
 			<CreateTaskModal
 				isOpen={showCreateTask}
 				onClose={() => setShowCreateTask(false)}
@@ -982,6 +755,7 @@ const Dashboard = () => {
 				members={selectedEnv?.members}
 				onSuccess={() => fetchTasks(selectedEnv.id)}
 				initialAssignee={preselectedAssignee}
+				showToast={showToast}
 			/>
 			<TaskDetailModal
 				isOpen={showTaskDetail}
@@ -990,29 +764,17 @@ const Dashboard = () => {
 				user={user}
 				onUpdate={() => fetchTasks(selectedEnv.id)}
 				onDelete={deleteTask}
-				members={selectedEnv?.members}
+				showToast={showToast}
 			/>
-			<MembersModal
-				isOpen={showMembers}
-				onClose={() => setShowMembers(false)}
-				members={selectedEnv?.members || []}
-				currentUserId={user.id}
-				adminId={selectedEnv?.admin?.id}
-				onKick={handleKick}
-				circleId={selectedEnv?.id}
-				onDM={(member) => {
-					setShowMembers(false);
-					startDM(member);
-				}}
-				onAssign={(member) => {
-					setShowMembers(false);
-					setPreselectedAssignee(member.id);
-					setShowCreateTask(true);
-				}}
-				onLeave={handleLeaveCircle}
-				onlineUsers={onlineUsers}
+			<ConfirmationModal
+				isOpen={showLeaveConfirm}
+				onClose={() => setShowLeaveConfirm(false)}
+				onConfirm={executeLeaveCircle}
+				title="Leave Circle"
+				message={`Are you sure you want to leave ${myCircles.find(c => c.id === circleToLeave)?.name || 'this circle'}?`}
+				confirmText="Leave"
+				isDestructive={true}
 			/>
-			<SudokuModal isOpen={showSudoku} onClose={() => setShowSudoku(false)} circleId={selectedEnv?.id} />
 		</div>
 	);
 };

@@ -1,0 +1,227 @@
+/* Common Modal Styles */
+.modal-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.modal-icon-wrapper.primary {
+    background: rgba(117, 54, 150, 0.1);
+    border: 2px solid var(--primary);
+    color: var(--primary);
+}
+
+.modal-icon-wrapper.blue {
+    background: rgba(59, 130, 246, 0.1);
+    border: 2px solid #3b82f6;
+    color: #3b82f6;
+}
+
+.modal-icon-wrapper.destructive {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.modal-icon-lg {
+    font-size: 28px;
+}
+
+.modal-btn-primary {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.modal-input {
+    border-radius: 8px;
+}
+
+/* CreateTaskModal */
+.task-type-btn {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    background: transparent;
+}
+
+.task-type-btn.active {
+    color: white;
+}
+
+.task-type-btn.assignment.active {
+    background: #83ad6c;
+    border-color: #83ad6c;
+}
+
+.task-type-btn.checklist.active {
+    background: #753696;
+    border-color: #753696;
+}
+
+.task-type-btn.note.active {
+    background: #f59e0b;
+    border-color: #f59e0b;
+}
+
+.checklist-input-start {
+    border-radius: 8px 0 0 8px;
+}
+
+.checklist-btn-end {
+    border-radius: 0 8px 8px 0;
+}
+
+.checklist-item-row {
+    border-radius: 8px;
+    margin-bottom: 6px;
+}
+
+/* ConfirmationModal */
+.confirm-btn {
+    border-radius: 8px;
+    min-width: 100px;
+}
+
+/* TaskDetailModal */
+.task-detail-badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 12px;
+    margin-bottom: 1rem;
+    border: 1px solid;
+}
+
+.task-detail-description {
+    white-space: pre-wrap;
+    line-height: 1.6;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid;
+}
+
+.task-detail-footer {
+    padding-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1.5px solid;
+}
+
+.task-action-btn {
+    border-radius: 6px;
+}
+
+/* Theme classes for TaskDetailModal */
+.task-theme-note .task-detail-badge,
+.task-theme-note .task-detail-description {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.2);
+}
+.task-theme-note .task-detail-footer {
+    border-top-color: rgba(245, 158, 11, 0.2);
+}
+.task-theme-note .checklist-item-row {
+    border-color: rgba(245, 158, 11, 0.2);
+}
+.task-theme-note .checklist-item-row.checked {
+    background-color: rgba(245, 158, 11, 0.1);
+}
+.task-theme-note .checklist-checkbox {
+    border-color: #f59e0b;
+    background: transparent;
+}
+.task-theme-note .checklist-checkbox.checked {
+    background-color: #f59e0b;
+}
+
+.task-theme-checklist .task-detail-badge,
+.task-theme-checklist .task-detail-description {
+    background-color: rgba(117, 54, 150, 0.1);
+    color: #753696;
+    border-color: rgba(117, 54, 150, 0.2);
+}
+.task-theme-checklist .task-detail-footer {
+    border-top-color: rgba(117, 54, 150, 0.2);
+}
+.task-theme-checklist .checklist-item-row {
+    border-color: rgba(117, 54, 150, 0.2);
+}
+.task-theme-checklist .checklist-item-row.checked {
+    background-color: rgba(117, 54, 150, 0.1);
+}
+.task-theme-checklist .checklist-checkbox {
+    border-color: #753696;
+    background: transparent;
+}
+.task-theme-checklist .checklist-checkbox.checked {
+    background-color: #753696;
+}
+
+.task-theme-assignment .task-detail-badge,
+.task-theme-assignment .task-detail-description {
+    background-color: rgba(131, 173, 108, 0.15);
+    color: #83ad6c;
+    border-color: rgba(131, 173, 108, 0.2);
+}
+.task-theme-assignment .task-detail-footer {
+    border-top-color: rgba(131, 173, 108, 0.2);
+}
+
+/* JoinCircleModal */
+.join-code-input {
+    border-radius: 8px;
+    letter-spacing: 2px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* MembersModal */
+.member-list-item {
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+}
+.member-list-item.admin {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.member-avatar-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #3b82f6;
+}
+.member-list-item.admin .member-avatar-box {
+    border: 2px solid #3b82f6;
+}
+
+.member-status-dot {
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--surface);
+    border-radius: 50%;
+}
+
+.member-action-btn {
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+}
+.member-btn-text {
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}

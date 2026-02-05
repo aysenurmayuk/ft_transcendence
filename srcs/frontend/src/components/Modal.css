@@ -33,10 +33,7 @@
 	font-size: 24px;
 	font-weight: 600;
 	color: var(--text);
-	background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
-	background-clip: text;
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
+	color: var(--text);
 }
 
 .close-btn {

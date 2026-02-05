@@ -1,162 +1,257 @@
-.sudoku-container {
-	/* min-height: 100vh; Removed for modal */
-	padding: 20px;
-	/* background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); Removed for modal transparency/integration */
-	color: white;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-}
-
-.game-header {
-	text-align: center;
-	margin-bottom: 30px;
-}
-
-.game-header h1 {
-	font-size: 2.5rem;
-	margin-bottom: 10px;
-	background: linear-gradient(45deg, #4facfe, #00f2fe);
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
-}
-
-.game-stats {
-	display: flex;
-	gap: 20px;
-	justify-content: center;
-	font-size: 1.1rem;
-	color: #a0a0a0;
-}
-
+/* === Sudoku Improvements === */
 .sudoku-board {
-	display: grid;
-	grid-template-columns: repeat(9, 1fr);
-	gap: 1px;
-	background: #4a4a4a;
-	padding: 2px;
-	border: 2px solid #4facfe;
-	border-radius: 4px;
-	max-width: 500px;
-	width: 100%;
-	aspect-ratio: 1;
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    border: 2px solid var(--text);
+    background-color: var(--surface);
+    max-width: 1000px;
+    width: 100%;
+    aspect-ratio: 1;
 }
 
 .cell {
-	background: #1a1a2e;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 1.5rem;
-	cursor: pointer;
-	transition: all 0.2s;
-	color: #e0e0e0;
+    border: 1px solid var(--sudoku-cell-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(1.5rem, 4vw, 4rem);
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+}
+
+.cell-border-right {
+    border-right: 2px solid var(--text) !important;
+}
+
+.cell-border-bottom {
+    border-bottom: 2px solid var(--text) !important;
+}
+
+@media (min-width: 992px) {
+    .sudoku-board {
+        width: 1000px;
+        max-width: 100%;
+    }
+}
+
+.sudoku-controls-card {
+    width: 100%;
+    max-width: 500px;
+}
+@media (min-width: 992px) {
+    .sudoku-controls-card {
+        width: 300px;
+        max-width: none;
+    }
+}
+
+.sudoku-numpad-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.5rem;
+}
+
+@media (min-width: 992px) {
+    .sudoku-numpad-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.numpad-btn {
+    aspect-ratio: 1;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sudoku-board {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+
+    width: min(60vw, 800px);
+    aspect-ratio: 1 / 1;
+
+    background: var(--sudoku-bg);
+    border: 3px solid var(--sudoku-border);
+    margin: 0 auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Tablet responsive */
+@media (max-width: 1024px) {
+    .sudoku-board {
+        max-width: 1000px;
+    }
+}
+
+/* Mobile - prioritize height */
+@media (max-width: 768px) {
+    .sudoku-board {
+        max-width: 85vw;
+        max-height: 85vw;
+        flex-shrink: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .sudoku-board {
+        max-width: 80vw;
+        max-height: 80vw;
+        flex-shrink: 0;
+    }
+}
+
+.cell {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--sudoku-cell-bg);
+    border: 1px solid var(--sudoku-cell-border);
+    color: var(--sudoku-cell-text);
+    font-size: 1.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    transition: background-color 0.2s ease;
+}
+
+/* Mobile font size adjustment */
+@media (max-width: 768px) {
+    .cell {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .cell {
+        font-size: 1.2rem;
+    }
 }
 
 .cell:hover {
-	background: #2a2a4e;
-}
-
-.cell.selected {
-	background: rgba(79, 172, 254, 0.3);
-}
-
-.cell.highlighted {
-	background: rgba(79, 172, 254, 0.1);
+    background: var(--sudoku-cell-hover);
 }
 
 .cell.initial {
-	font-weight: bold;
-	color: #4facfe;
+    background: transparent;
+    color: var(--sudoku-cell-initial);
+    font-weight: 600;
+}
+
+.cell.selected {
+    background: var(--sudoku-cell-selected-bg);
+    box-shadow: inset 0 0 0 2px var(--sudoku-cell-selected-shadow);
+    border-color: transparent;
 }
 
 .cell.error {
-	color: #ff4d4f;
-	background: rgba(255, 77, 79, 0.1);
+    color: var(--sudoku-cell-error-text);
+    background: var(--sudoku-cell-error-bg);
 }
 
-/* Add thicker borders for 3x3 grids */
-.cell:nth-child(3n) {
-	border-right: 1px solid #4a4a4a;
+.sudoku-controls-card {
+    width: 100%;
+    max-width: 280px;
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    flex-shrink: 0;
 }
 
-.cell:nth-child(9n) {
-	border-right: none;
+.sudoku-numpad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
 }
 
-.sudoku-board .cell:nth-child(n+19):nth-child(-n+27),
-.sudoku-board .cell:nth-child(n+46):nth-child(-n+54) {
-	border-bottom: 1px solid #4a4a4a;
+.numpad-btn {
+    padding: 10px 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    color: var(--text);
+    transition: all 0.2s ease;
+    min-height: 45px;
 }
 
-/* Override for visual separation of 3x3 blocks */
-.cell:nth-child(3n) {
-	border-right: 2px solid #5a5a5a;
+.numpad-btn:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    transform: translateY(-2px);
 }
 
-.cell:nth-child(9n) {
-	border-right: none;
+.numpad-btn:active {
+    transform: translateY(0);
 }
 
-.row-separator {
-	grid-column: 1 / -1;
-	height: 2px;
-	background: #5a5a5a;
+.cell-border-right {
+    border-right: 2px solid var(--sudoku-grid-line) !important;
 }
 
-.controls {
-	margin-top: 30px;
-	display: flex;
-	gap: 20px;
-	flex-wrap: wrap;
-	justify-content: center;
+.cell-border-bottom {
+    border-bottom: 2px solid var(--sudoku-grid-line) !important;
 }
 
-.numpad {
-	display: grid;
-	grid-template-columns: repeat(9, 1fr);
-	gap: 10px;
-	margin-top: 20px;
-	max-width: 500px;
-	width: 100%;
+/* Responsive layout for controls */
+@media (max-width: 992px) {
+    .sudoku-controls-card {
+        max-width: 320px;
+    }
+    
+    .sudoku-numpad-grid {
+        gap: 6px;
+    }
+    
+    .numpad-btn {
+        min-height: 40px;
+        font-size: 1rem;
+        padding: 8px 6px;
+    }
 }
 
-.num-btn {
-	aspect-ratio: 1;
-	background: rgba(255, 255, 255, 0.1);
-	border: 1px solid rgba(255, 255, 255, 0.2);
-	border-radius: 8px;
-	color: white;
-	font-size: 1.2rem;
-	cursor: pointer;
-	transition: all 0.2s;
+@media (max-width: 768px) {
+    .sudoku-controls-card {
+        max-width: 100%;
+    }
+    
+    .sudoku-numpad-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+    }
+    
+    .numpad-btn {
+        min-height: 40px;
+        font-size: 0.95rem;
+    }
 }
 
-.num-btn:hover {
-	background: rgba(79, 172, 254, 0.2);
-	border-color: #4facfe;
-}
-
-.action-btn {
-	padding: 10px 20px;
-	border-radius: 8px;
-	border: none;
-	font-weight: 600;
-	cursor: pointer;
-	transition: transform 0.2s;
-}
-
-.new-game-btn {
-	background: linear-gradient(45deg, #4facfe, #00f2fe);
-	color: #1a1a2e;
-}
-
-.solve-btn {
-	background: transparent;
-	border: 1px solid #4facfe;
-	color: #4facfe;
-}
-
-.action-btn:hover {
-	transform: translateY(-2px);
+@media (max-width: 480px) {
+    .sudoku-controls-card {
+        max-width: 100%;
+        padding: 1rem;
+    }
+    
+    .sudoku-numpad-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+    }
+    
+    .numpad-btn {
+        min-height: 36px;
+        font-size: 0.9rem;
+        padding: 6px 4px;
+    }
 }

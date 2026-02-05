@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import Modal from './Modal';
-import './AuthModals.css'; // Reusing styles
+import BootstrapModal from './BootstrapModal';
+import './DashboardModals.css';
 
-export const CreateCircleModal = ({ isOpen, onClose, onSuccess }) => {
+export const CreateCircleModal = ({ isOpen, onClose, onSuccess, showToast }) => {
 	const [name, setName] = useState('');
 	const [description, setDescription] = useState('');
 
@@ -20,42 +20,65 @@ export const CreateCircleModal = ({ isOpen, onClose, onSuccess }) => {
 			});
 			if (res.ok) {
 				const data = await res.json();
-				alert('Circle created successfully!');
+				showToast('Circle created successfully!');
 				onSuccess(data);
 				onClose();
 			} else {
 				const err = await res.json();
-				alert('Error creating circle: ' + (JSON.stringify(err) || res.statusText));
+				showToast('Error creating circle: ' + (JSON.stringify(err) || res.statusText), 'Error');
 			}
 		} catch (err) {
 			console.error(err);
-			alert('Network error');
+			showToast('Network error', 'Error');
 		}
 	};
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} title="Create New Circle">
-			<form className="auth-form" onSubmit={handleSubmit}>
-				<div className="form-group">
-					<label>Circle Name</label>
-					<input className="glass-input" value={name} onChange={e => setName(e.target.value)} required />
+		<BootstrapModal isOpen={isOpen} onClose={onClose} title="Create New Circle">
+			<div className="text-center mb-4">
+				<div className="modal-icon-wrapper primary mb-3">
+					<i className="fa-solid fa-layer-group modal-icon-lg"></i>
 				</div>
-				<div className="form-group">
-					<label>Description</label>
-					<input className="glass-input" value={description} onChange={e => setDescription(e.target.value)} />
+				<p className="text-muted small">Create a new workspace for your team to collaborate.</p>
+			</div>
+			<form onSubmit={handleSubmit} className="d-flex flex-column gap-3">
+				<div>
+					<label className="form-label text-muted small fw-medium">Circle Name</label>
+					<input
+						className="form-control modal-input"
+						value={name}
+						onChange={e => setName(e.target.value)}
+						required
+						placeholder="e.g. Engineering Team"
+					/>
 				</div>
-				<button type="submit" className="primary-btn">Create</button>
+				<div>
+					<label className="form-label text-muted small fw-medium">Description</label>
+					<textarea
+						className="form-control textarea-resize-v modal-input"
+						value={description}
+						onChange={e => setDescription(e.target.value)}
+						rows="3"
+						placeholder="What is this circle about?"
+					/>
+				</div>
+				<button
+					type="submit"
+					className="btn btn-primary w-100 mt-2 modal-btn-primary"
+				>
+					<i className="fa-solid fa-plus me-2"></i>
+					Create Circle
+				</button>
 			</form>
-		</Modal>
+		</BootstrapModal>
 	);
 };
 
-export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess, initialAssignee }) => {
-	const [taskType, setTaskType] = useState('assignment'); // assignment, checklist, note
+export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess, initialAssignee, showToast }) => {
+	const [taskType, setTaskType] = useState('assignment');
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
 	const [assignedTo, setAssignedTo] = useState('');
-	// Checklist state
 	const [checklistItems, setChecklistItems] = useState([]);
 	const [newItem, setNewItem] = useState('');
 
@@ -97,8 +120,7 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 				body: JSON.stringify(payload)
 			});
 			if (res.ok) {
-				alert('Task created successfully!');
-				// Reset form
+				showToast('Task created successfully!');
 				setTitle('');
 				setDescription('');
 				setChecklistItems([]);
@@ -107,15 +129,14 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 				onClose();
 			} else {
 				const err = await res.json();
-				alert('Error creating task: ' + (JSON.stringify(err) || res.statusText));
+				showToast('Error creating task: ' + (JSON.stringify(err) || res.statusText), 'Error');
 			}
 		} catch (err) {
 			console.error(err);
-			alert('Network error');
+			showToast('Network error', 'Error');
 		}
 	};
 
-	// Reset state on open
 	React.useEffect(() => {
 		if (isOpen) {
 			setTaskType('assignment');
@@ -128,48 +149,54 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 	}, [isOpen, initialAssignee]);
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} title="Add New Item">
-			<div className="task-type-selector" style={{ display: 'flex', gap: '8px', marginBottom: '20px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
+		<BootstrapModal isOpen={isOpen} onClose={onClose} title="Add New Item">
+			<div className="d-flex gap-2 mb-3">
 				{['assignment', 'checklist', 'note'].map(type => (
 					<button
 						key={type}
 						type="button"
+						className={`btn flex-fill text-capitalize task-type-btn ${type} ${taskType === type ? 'active' : ''}`}
 						onClick={() => setTaskType(type)}
-						style={{
-							flex: 1, padding: '8px', border: 'none', borderRadius: '6px',
-							background: taskType === type ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-							color: taskType === type ? '#fff' : '#94a3b8',
-							cursor: 'pointer', textTransform: 'capitalize', fontWeight: 500
-						}}
 					>
 						{type}
 					</button>
 				))}
 			</div>
 
-			<form className="auth-form" onSubmit={handleSubmit}>
-				<div className="form-group">
-					<label>Title</label>
-					<input className="glass-input" value={title} onChange={e => setTitle(e.target.value)} required placeholder={taskType === 'note' ? 'Note Title' : 'Task Title'} />
+			<form onSubmit={handleSubmit} className="d-flex flex-column gap-3">
+				<div>
+					<label className="form-label text-muted small fw-medium">Title</label>
+					<input
+						className="form-control border-secondary modal-input"
+						value={title}
+						onChange={e => setTitle(e.target.value)}
+						required
+						placeholder={taskType === 'note' ? 'Note Title' : 'Task Title'}
+					/>
 				</div>
 
 				{taskType !== 'checklist' && (
-					<div className="form-group">
-						<label>{taskType === 'note' ? 'Content' : 'Description'}</label>
+					<div>
+						<label className="form-label text-muted small fw-medium">
+							{taskType === 'note' ? 'Content' : 'Description'}
+						</label>
 						<textarea
-							className="glass-input"
+							className="form-control border-secondary textarea-resize-v modal-input"
 							rows="3"
 							value={description}
 							onChange={e => setDescription(e.target.value)}
-							style={{ resize: 'none', height: 'auto' }}
 						/>
 					</div>
 				)}
 
 				{taskType === 'assignment' && members && (
-					<div className="form-group">
-						<label>Assign To (Optional)</label>
-						<select className="glass-input" value={assignedTo} onChange={e => setAssignedTo(e.target.value)} style={{ background: '#1e293b' }}>
+					<div>
+						<label className="form-label text-muted small fw-medium">Assign To (Optional)</label>
+						<select
+							className="form-select border-secondary modal-input"
+							value={assignedTo}
+							onChange={e => setAssignedTo(e.target.value)}
+						>
 							<option value="">-- Everyone --</option>
 							{members.map(m => (
 								<option key={m.id} value={m.id}>{m.username}</option>
@@ -179,39 +206,92 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 				)}
 
 				{taskType === 'checklist' && (
-					<div className="form-group">
-						<label>Checklist Items</label>
-						<div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+					<div>
+						<label className="form-label text-muted small fw-medium">Checklist Items</label>
+						<div className="input-group mb-2">
 							<input
-								className="glass-input"
+								className="form-control border-secondary checklist-input-start"
 								value={newItem}
 								onChange={e => setNewItem(e.target.value)}
 								placeholder="Add item..."
 								onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addChecklistItem(); } }}
 							/>
-							<button type="button" onClick={addChecklistItem} className="primary-btn" style={{ width: 'auto', padding: '0 16px' }}>+</button>
+							<button
+								type="button"
+								onClick={addChecklistItem}
+								className="btn btn-primary checklist-btn-end"
+							>
+								<i className="fa-solid fa-plus"></i>
+							</button>
 						</div>
-						<div className="checklist-preview" style={{ maxHeight: '150px', overflowY: 'auto' }}>
+						<div className="list-group checklist-container">
 							{checklistItems.map((item, idx) => (
-								<div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px', background: 'rgba(255,255,255,0.05)', marginBottom: '4px', borderRadius: '4px' }}>
-									<span style={{ color: '#cbd5e1', fontSize: '13px' }}>{item.content}</span>
-									<button type="button" onClick={() => removeChecklistItem(idx)} style={{ color: '#f87171', background: 'none', border: 'none', cursor: 'pointer' }}>&times;</button>
+								<div
+									key={idx}
+									className="list-group-item border-secondary d-flex justify-content-between align-items-center py-2 checklist-item-row"
+								>
+									<span className="small">{item.content}</span>
+									<button
+										type="button"
+										onClick={() => removeChecklistItem(idx)}
+										className="btn btn-sm btn-link text-danger p-0"
+										aria-label="Remove"
+									>
+										<i className="fa-solid fa-xmark"></i>
+									</button>
 								</div>
 							))}
 						</div>
 					</div>
 				)}
 
-				<button type="submit" className="primary-btn">Create {taskType}</button>
+				<button
+					type="submit"
+					className="btn btn-primary w-100 mt-2 modal-btn-primary"
+				>
+					<i className="fa-solid fa-check me-2"></i>
+					Create {taskType}
+				</button>
 			</form>
-		</Modal>
+		</BootstrapModal>
 	);
 };
 
-export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelete }) => {
+
+export const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = "Confirm", cancelText = "Cancel", isDestructive = false }) => {
+	return (
+		<BootstrapModal isOpen={isOpen} onClose={onClose} title={title}>
+			<div className="text-center p-3">
+				{isDestructive && (
+					<div className="modal-icon-wrapper destructive mx-auto mb-3">
+						<i className="fa-solid fa-triangle-exclamation modal-icon-lg"></i>
+					</div>
+				)}
+				<p className="mb-4 text-muted">{message}</p>
+				<div className="d-flex gap-2 justify-content-center">
+					<button
+						onClick={onClose}
+						className="btn btn-outline-secondary confirm-btn"
+					>
+						{cancelText}
+					</button>
+					<button
+						onClick={() => { onConfirm(); onClose(); }}
+						className={`btn ${isDestructive ? 'btn-danger' : 'btn-primary'} confirm-btn`}
+					>
+						{confirmText}
+					</button>
+				</div>
+			</div>
+		</BootstrapModal>
+	);
+};
+
+export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelete, showToast }) => {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editTitle, setEditTitle] = useState('');
 	const [editDescription, setEditDescription] = useState('');
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
 	React.useEffect(() => {
 		if (task) {
@@ -241,7 +321,7 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 				onUpdate();
 				setIsEditing(false);
 			} else {
-				alert('Failed to update task');
+				showToast('Failed to update task', 'Error');
 			}
 		} catch (e) { console.error(e); }
 	};
@@ -278,150 +358,190 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 		} catch (e) { console.error(e); }
 	};
 
-	// Determine if user can complete (Assignment logic)
 	const canComplete = task.task_type === 'assignment' && task.status !== 'done' && (!task.assigned_to || task.assigned_to.id === user.id);
-	// Determine if user can delete (Creator only)
 	const canDelete = task.created_by.id === user.id;
 	const canEdit = task.created_by.id === user.id;
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Edit Item' : task.title}>
-			<div style={{ marginBottom: '20px' }}>
-				{isEditing ? (
-					<div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '12px' }}>
-						<div>
-							<label style={{ fontSize: '12px', color: '#94a3b8' }}>Title</label>
-							<input
-								className="glass-input"
-								value={editTitle}
-								onChange={e => setEditTitle(e.target.value)}
-							/>
-						</div>
-						{task.task_type !== 'checklist' && (
+		<>
+			<div className={`task-theme-${task.task_type}`}>
+			<BootstrapModal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Edit Item' : task.title}>
+				<div className="mb-3">
+					{isEditing ? (
+						<div className="d-flex flex-column gap-3">
 							<div>
-								<label style={{ fontSize: '12px', color: '#94a3b8' }}>{task.task_type === 'note' ? 'Content' : 'Description'}</label>
-								<textarea
-									className="glass-input"
-									rows="5"
-									value={editDescription}
-									onChange={e => setEditDescription(e.target.value)}
-									style={{ resize: 'vertical' }}
+								<label className="form-label text-muted small fw-medium">Title</label>
+								<input
+									className="form-control border-secondary modal-input"
+									value={editTitle}
+									onChange={e => setEditTitle(e.target.value)}
 								/>
 							</div>
-						)}
-					</div>
-				) : (
-					<>
-						<div style={{ display: 'inline-block', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', background: 'rgba(255,255,255,0.1)', color: '#cbd5e1', marginBottom: '12px', textTransform: 'capitalize' }}>
-							{task.task_type} • {task.status.replace('_', ' ')}
+							{task.task_type !== 'checklist' && (
+								<div>
+									<label className="form-label text-muted small fw-medium">
+										{task.task_type === 'note' ? 'Content' : 'Description'}
+									</label>
+									<textarea
+										className="form-control border-secondary textarea-resize-v modal-input"
+										rows="5"
+										value={editDescription}
+										onChange={e => setEditDescription(e.target.value)}
+									/>
+								</div>
+							)}
 						</div>
-						{task.task_type === 'checklist' ? (
-							<div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-								{task.checklist_items && task.checklist_items.map(item => (
-									<div key={item.id} onClick={() => toggleChecklistItem(item.id)} style={{
-										display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer',
-										padding: '8px', borderRadius: '6px', background: 'rgba(255,255,255,0.02)',
-										opacity: item.is_checked ? 0.5 : 1
-									}}>
-										<div style={{
-											width: '20px', height: '20px', borderRadius: '4px', border: '2px solid #64748b',
-											display: 'grid', placeItems: 'center', background: item.is_checked ? '#64748b' : 'transparent', flexShrink: 0
-										}}>
-											{item.is_checked && <span style={{ fontSize: '14px', color: '#fff' }}>✓</span>}
-										</div>
-										<span style={{ fontSize: '15px', color: '#cbd5e1', textDecoration: item.is_checked ? 'line-through' : 'none' }}>{item.content}</span>
-									</div>
-								))}
-							</div>
-						) : (
-							<div style={{ whiteSpace: 'pre-wrap', color: '#e2e8f0', lineHeight: '1.5' }}>
-								{task.description || <em style={{ color: '#64748b' }}>No details provided.</em>}
-							</div>
-						)}
-					</>
-				)}
-			</div>
-
-			<div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-				{!isEditing && (
-					<div>
-						{task.task_type === 'assignment' && (
-							<div style={{ fontSize: '13px', color: '#94a3b8' }}>
-								Assigned to: <span style={{ color: '#fff' }}>{task.assigned_to ? task.assigned_to.username : 'Everyone'}</span>
-							</div>
-						)}
-						<div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-							Created by {task.created_by.username}
-						</div>
-					</div>
-				)}
-
-				<div style={{ display: 'flex', gap: '10px', marginLeft: 'auto' }}>
-					{isEditing ? (
-						<>
-							<button onClick={() => setIsEditing(false)} style={{ background: 'transparent', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.2)', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>
-								Cancel
-							</button>
-							<button onClick={handleSave} className="primary-btn" style={{ padding: '8px 16px' }}>
-								Save
-							</button>
-						</>
 					) : (
 						<>
-							{canEdit && (
-								<button onClick={() => setIsEditing(true)} style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>
-									Edit
-								</button>
-							)}
-							{canDelete && (
-								<button onClick={() => { if (window.confirm('Delete this task?')) onDelete(task.id); }} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>
-									Delete
-								</button>
-							)}
-							{canComplete && (
-								<button onClick={completeTask} className="primary-btn" style={{ padding: '8px 16px', fontSize: '14px' }}>
-									Complete
-								</button>
+							<div
+								className="badge text-capitalize mb-3 task-detail-badge"
+							>
+								<i className={`fa-solid ${task.task_type === 'note' ? 'fa-note-sticky' :
+									task.task_type === 'checklist' ? 'fa-list-check' : 'fa-clipboard-check'
+									} me-2`}></i>
+								{task.task_type} • {task.status.replace('_', ' ')}
+							</div>
+							{task.task_type === 'checklist' ? (
+								<div className="d-flex flex-column gap-2">
+									{task.checklist_items && task.checklist_items.map(item => (
+										<div
+											key={item.id}
+											onClick={() => toggleChecklistItem(item.id)}
+											className={`d-flex align-items-center gap-3 p-3 rounded border checklist-item-row cursor-pointer ${item.is_checked ? 'opacity-50 checked' : ''}`}
+										>
+											<div
+												className={`d-flex align-items-center justify-content-center rounded flex-shrink-0 checklist-checkbox ${item.is_checked ? 'checked' : ''}`}
+												style={{ width: '20px', height: '20px', borderRadius: '4px', border: '2px solid' }}
+											>
+												{item.is_checked && <i className="fa-solid fa-check text-white" style={{ fontSize: '10px' }}></i>}
+											</div>
+											<span className={`${item.is_checked ? 'text-decoration-line-through' : ''}`}>
+												{item.content}
+											</span>
+										</div>
+									))}
+								</div>
+							) : (
+								<div className="task-detail-description">
+									{task.description || <em className="text-muted">No details provided.</em>}
+								</div>
 							)}
 						</>
 					)}
 				</div>
+
+				<div className="task-detail-footer">
+					{!isEditing && (
+						<div>
+							{task.task_type === 'assignment' && (
+								<div className="small text-muted mb-1">
+									<i className="fa-solid fa-user me-2" style={{ fontSize: '11px' }}></i>
+									Assigned to: <span className="text-body fw-medium">
+										{task.assigned_to ? task.assigned_to.username : 'Everyone'}
+									</span>
+								</div>
+							)}
+							<div className="text-secondary task-meta-text">
+								<i className="fa-regular fa-user me-2" style={{ fontSize: '11px' }}></i>
+								Created by {task.created_by.username}
+							</div>
+						</div>
+					)}
+
+					<div className="d-flex gap-2 ms-auto">
+						{isEditing ? (
+							<>
+								<button
+									onClick={() => setIsEditing(false)}
+									className="btn btn-outline-secondary btn-sm task-action-btn"
+								>
+									Cancel
+								</button>
+								<button
+									onClick={handleSave}
+									className="btn btn-primary btn-sm task-action-btn"
+								>
+									<i className="fa-solid fa-check me-1"></i>
+									Save
+								</button>
+							</>
+						) : (
+							<>
+								{canEdit && (
+									<button
+										onClick={() => setIsEditing(true)}
+										className="btn btn-outline-primary btn-sm task-action-btn"
+									>
+										<i className="fa-solid fa-pen me-1"></i>
+										Edit
+									</button>
+								)}
+								{canDelete && (
+									<button
+										onClick={() => setShowDeleteConfirm(true)}
+										className="btn btn-outline-danger btn-sm task-action-btn"
+									>
+										<i className="fa-solid fa-trash me-1"></i>
+										Delete
+									</button>
+								)}
+								{canComplete && (
+									<button
+										onClick={completeTask}
+										className="btn btn-success btn-sm task-action-btn"
+									>
+										<i className="fa-solid fa-check me-1"></i>
+										Complete
+									</button>
+								)}
+							</>
+						)}
+					</div>
+				</div>
+			</BootstrapModal>
 			</div>
-		</Modal>
+
+			<ConfirmationModal
+				isOpen={showDeleteConfirm}
+				onClose={() => setShowDeleteConfirm(false)}
+				onConfirm={() => onDelete(task.id)}
+				title="Delete Item"
+				message="Are you sure you want to delete this item? This action cannot be undone."
+				confirmText="Delete"
+				isDestructive={true}
+			/>
+		</>
 	);
 };
 
-export const InviteModal = ({ isOpen, onClose, inviteCode }) => {
+
+export const InviteModal = ({ isOpen, onClose, inviteCode, showToast }) => {
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} title="Invite Members">
-			<div style={{ textAlign: 'center', color: 'var(--text)' }}>
-				<p style={{ marginBottom: '20px', color: 'var(--text-muted)' }}>Share this code with others to let them join this circle:</p>
-				<div
-					style={{
-						background: 'rgba(255,255,255,0.1)',
-						padding: '20px',
-						borderRadius: '12px',
-						fontSize: '32px',
-						fontWeight: '800',
-						letterSpacing: '4px',
-						marginBottom: '20px',
-						border: '1px dashed rgba(255,255,255,0.3)'
-					}}
-				>
+		<BootstrapModal isOpen={isOpen} onClose={onClose} title="Invite Members">
+			<div className="text-center">
+				<div className="modal-icon-wrapper primary mb-3">
+					<i className="fa-solid fa-user-plus modal-icon-lg"></i>
+				</div>
+				<p className="text-muted mb-3">Share this code with others to let them join this circle</p>
+				<div className="invite-code-box mb-3">
 					{inviteCode || 'LOADING'}
 				</div>
-				<button className="primary-btn" onClick={() => {
-					navigator.clipboard.writeText(inviteCode);
-					alert('Copied to clipboard!');
-				}}>
+				<button
+					className="btn btn-primary w-100 modal-btn-primary"
+					onClick={() => {
+						navigator.clipboard.writeText(inviteCode);
+						showToast('Copied to clipboard!');
+					}}
+				>
+					<i className="fa-solid fa-copy me-2"></i>
 					Copy Code
 				</button>
 			</div>
-		</Modal>
+		</BootstrapModal>
 	);
 };
 
-export const JoinCircleModal = ({ isOpen, onClose, onSuccess }) => {
+export const JoinCircleModal = ({ isOpen, onClose, onSuccess, showToast }) => {
 	const [code, setCode] = useState('');
 
 	const handleSubmit = async (e) => {
@@ -441,7 +561,7 @@ export const JoinCircleModal = ({ isOpen, onClose, onSuccess }) => {
 				onSuccess(data.circle);
 				onClose();
 			} else {
-				alert('Invalid Code');
+				showToast('Invalid Code', 'Error');
 			}
 		} catch (err) {
 			console.error(err);
@@ -449,21 +569,32 @@ export const JoinCircleModal = ({ isOpen, onClose, onSuccess }) => {
 	};
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} title="Join a Circle">
-			<form className="auth-form" onSubmit={handleSubmit}>
-				<div className="form-group">
-					<label>Invite Code</label>
+		<BootstrapModal isOpen={isOpen} onClose={onClose} title="Join a Circle">
+			<form onSubmit={handleSubmit} className="d-flex flex-column gap-3">
+				<div className="text-center mb-3">
+					<div className="modal-icon-wrapper blue mb-3">
+						<i className="fa-solid fa-right-to-bracket modal-icon-lg"></i>
+					</div>
+				</div>
+				<div>
+					<label className="form-label text-muted small fw-medium">Invite Code</label>
 					<input
-						className="glass-input"
+						className="form-control border-secondary text-center join-code-input"
 						value={code}
 						onChange={e => setCode(e.target.value.toUpperCase())}
 						placeholder="e.g. A1B2C3D4"
 						required
 					/>
 				</div>
-				<button type="submit" className="primary-btn">Join</button>
+				<button
+					type="submit"
+					className="btn btn-primary w-100 mt-2 modal-btn-primary"
+				>
+					<i className="fa-solid fa-check me-2"></i>
+					Join Circle
+				</button>
 			</form>
-		</Modal>
+		</BootstrapModal>
 	);
 }
 
@@ -471,56 +602,53 @@ export const MembersModal = ({ isOpen, onClose, members, currentUserId, adminId,
 	const isAdmin = currentUserId === adminId;
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} title="Circle Members">
-			<div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+		<BootstrapModal isOpen={isOpen} onClose={onClose} title="Circle Members">
+			<div className="d-flex flex-column gap-3 members-list-container">
 				{members.map(member => {
 					const isOnline = onlineUsers && onlineUsers.has(Number(member.id));
 					return (
-						<div key={member.id} style={{
-							display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-							padding: '12px', marginBottom: '8px',
-							background: 'rgba(255,255,255,0.05)', borderRadius: '8px',
-							border: member.id === adminId ? '1px solid #6366f1' : 'none'
-						}}>
-							<div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-								<div style={{
-									width: '36px', height: '36px', borderRadius: '50%', background: '#334155',
-									overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
-									position: 'relative'
-								}}>
-									{member.avatar ?
-										<img src={member.avatar} alt={member.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> :
-										<span style={{ fontSize: '14px', color: '#cbd5e1' }}>{member.username.charAt(0).toUpperCase()}</span>
-									}
-									{/* Online Status Indicator */}
-									<div style={{
-										position: 'absolute', bottom: '0', right: '0',
-										width: '10px', height: '10px', borderRadius: '50%',
-										backgroundColor: isOnline ? '#22c55e' : '#ef4444',
-										border: '2px solid #1e293b'
-									}} title={isOnline ? "Online" : "Offline"} />
+						<div
+							key={member.id}
+							className={`d-flex align-items-center justify-content-between p-3 member-list-item ${member.id === adminId ? 'admin' : ''}`}
+						>
+							<div className="d-flex align-items-center gap-3">
+								<div className="position-relative">
+									<div className="member-avatar-box">
+										{member.avatar ?
+											<img src={member.avatar} alt={member.username} className="w-100 h-100 object-fit-cover" /> :
+											<span className="text-white fw-semibold">{member.username.charAt(0).toUpperCase()}</span>
+										}
+									</div>
+									<div
+										className={`position-absolute bottom-0 end-0 member-status-dot`}
+										style={{
+											background: isOnline ? '#10b981' : '#ef4444',
+										}}
+										title={isOnline ? "Online" : "Offline"}
+									/>
 								</div>
 								<div>
-									<div style={{ color: '#fff', fontWeight: 500 }}>
+									<div className="fw-medium">
 										{member.username}
-										{member.id === currentUserId && <span style={{ color: '#94a3b8', fontWeight: 400, fontSize: '12px' }}> (You)</span>}
+										{member.id === currentUserId && <span className="text-muted small fw-normal"> (You)</span>}
 									</div>
-									<div style={{ fontSize: '12px', color: member.id === adminId ? '#818cf8' : '#94a3b8' }}>
+									<div className="small" style={{
+										color: member.id === adminId ? '#3b82f6' : 'var(--text-muted)',
+										fontSize: '12px'
+									}}>
+										<i className={`fa-solid ${member.id === adminId ? 'fa-crown' : 'fa-user'} me-1`} style={{ fontSize: '10px' }}></i>
 										{member.id === adminId ? 'Admin' : 'Member'}
 									</div>
 								</div>
 							</div>
 
-							<div style={{ display: 'flex', gap: '8px' }}>
+							<div className="d-flex gap-2">
 								{member.id === currentUserId && !isAdmin && (
 									<button
 										onClick={() => onLeave(circleId)}
-										style={{
-											background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444',
-											border: '1px solid rgba(239, 68, 68, 0.2)', padding: '6px 12px', borderRadius: '6px',
-											cursor: 'pointer', fontSize: '12px', fontWeight: 600
-										}}
+										className="btn btn-sm btn-outline-danger member-btn-text"
 									>
+										<i className="fa-solid fa-right-from-bracket me-1"></i>
 										Leave
 									</button>
 								)}
@@ -530,35 +658,25 @@ export const MembersModal = ({ isOpen, onClose, members, currentUserId, adminId,
 										<button
 											onClick={() => onDM(member)}
 											title="Send Message"
-											style={{
-												background: 'rgba(99, 102, 241, 0.1)', color: '#818cf8',
-												border: 'none', padding: '6px 8px', borderRadius: '6px',
-												cursor: 'pointer', fontSize: '14px'
-											}}
+											className="btn btn-sm btn-outline-primary member-action-btn"
 										>
-											💬
+											<i className="fa-solid fa-comment"></i>
 										</button>
 										<button
 											onClick={() => onAssign(member)}
 											title="Assign Task"
-											style={{
-												background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8',
-												border: 'none', padding: '6px 8px', borderRadius: '6px',
-												cursor: 'pointer', fontSize: '14px'
-											}}
+											className="btn btn-sm btn-outline-info member-action-btn"
 										>
-											📋
+											<i className="fa-solid fa-clipboard-check"></i>
 										</button>
 									</>
 								)}
 								{isAdmin && member.id !== currentUserId && (
 									<button
 										onClick={() => { if (window.confirm(`Kick ${member.username}?`)) onKick(circleId, member.id); }}
-										style={{
-											background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444',
-											border: 'none', padding: '6px 12px', borderRadius: '6px',
-											cursor: 'pointer', fontSize: '12px', fontWeight: 600
-										}}>
+										className="btn btn-sm btn-outline-danger member-kick-btn"
+									>
+										<i className="fa-solid fa-user-xmark me-1"></i>
 										Kick
 									</button>
 								)}
@@ -567,20 +685,18 @@ export const MembersModal = ({ isOpen, onClose, members, currentUserId, adminId,
 					);
 				})}
 			</div>
-		</Modal >
+		</BootstrapModal>
 	);
 };
 
-// Lazy load Sudoku to avoid circular deps if any, but regular import is fine here
 import Sudoku from '../pages/Sudoku';
 
 export const SudokuModal = ({ isOpen, onClose, circleId }) => {
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} title="Sudoku">
-			{/* Use a wrapper to ensure scrollability if game is tall */}
-			<div style={{ maxHeight: '80vh', overflowY: 'auto', display: 'flex', justifyContent: 'center' }}>
+		<BootstrapModal isOpen={isOpen} onClose={onClose} title="Sudoku" size="modal-lg">
+			<div className="sudoku-modal-wrapper">
 				<Sudoku circleId={circleId} />
 			</div>
-		</Modal>
+		</BootstrapModal>
 	);
 };

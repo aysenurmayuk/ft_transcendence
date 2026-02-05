@@ -33,7 +33,7 @@
 }
 
 .primary-btn {
-	background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+	background: var(--primary);
 	color: white;
 	padding: 14px;
 	border-radius: var(--radius-sm);
@@ -66,7 +66,7 @@
 .divider span {
 	background: var(--background);
 	/* Fallback if transparent */
-	background: #1e293b;
+	background: #13315C;
 	/* Match modal bg kinda */
 	padding: 0 10px;
 	position: relative;

@@ -1,0 +1,17 @@
+.settings-avatar-container {
+    width: 100px;
+    height: 100px;
+}
+
+.settings-input:focus {
+    border-color: var(--palette-success) !important;
+    box-shadow: 0 0 0 0.25rem rgba(131, 173, 108, 0.25) !important;
+}
+
+.settings-card {
+    transition: all 0.3s ease;
+}
+
+.settings-card:hover {
+    border-color: var(--palette-success) !important;
+}

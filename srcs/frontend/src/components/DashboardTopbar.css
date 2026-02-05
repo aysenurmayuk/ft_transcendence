@@ -1,0 +1,229 @@
+/* === Topbar === */
+.dashboard-topbar {
+    background-color: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    height: 80px;
+    flex-shrink: 0;
+    z-index: 1020;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    border-radius: 0;
+    margin: 0;
+    width: 100%;
+    position: sticky;
+    top: 0;
+}
+
+@media (min-width: 768px) {
+    .dashboard-topbar {
+        padding-left: 2rem;
+    }
+}
+
+.topbar-combo-dropdown {
+    min-width: 0;
+    position: relative;
+}
+
+.topbar-combo-dropdown.mobile {
+    max-width: 140px;
+}
+
+.topbar-combo-btn {
+    overflow: hidden;
+    text-align: left;
+    border-radius: var(--radius-lg);
+    background-color: var(--surface);
+    box-shadow: var(--shadow-sm);
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
+}
+
+.topbar-combo-btn:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.topbar-combo-btn.desktop {
+    min-width: 220px;
+}
+
+.topbar-combo-menu {
+    position: absolute;
+    top: 100% !important;
+    left: 0 !important;
+    width: 100%;
+    z-index: 1050;
+    margin-top: 0.5rem !important;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+.topbar-combo-menu.show {
+    animation: slideDown 0.2s ease forwards;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.topbar-combo-btn::after {
+    transition: transform 0.2s ease;
+}
+
+.topbar-combo-btn.show::after {
+    transform: rotate(180deg);
+}
+
+.topbar-icon-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    box-shadow: var(--shadow-sm);
+    color: var(--text);
+    transition: all 0.2s ease;
+}
+
+.topbar-icon-btn:hover {
+    background-color: var(--primary);
+    color: white;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    border-color: var(--primary);
+}
+
+.topbar-icon-btn.mobile {
+    width: 32px;
+    height: 32px;
+}
+
+.avatar-stack-item {
+    width: 48px;
+    height: 48px;
+    border: 2px solid var(--surface);
+    transition: all 0.2s ease;
+}
+
+.avatar-stack-item:hover {
+    transform: translateY(-2px);
+    z-index: 20 !important;
+}
+
+.avatar-stack-item.mobile {
+    width: 32px;
+    height: 32px;
+}
+
+.avatar-stack-overflow {
+    margin-left: -12px;
+    z-index: 0;
+}
+
+.invite-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    box-shadow: var(--shadow-sm);
+    color: var(--text);
+    transition: all 0.2s ease;
+}
+
+.invite-btn:hover {
+    background-color: var(--primary);
+    color: white;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    border-color: var(--primary);
+}
+
+.invite-btn.mobile {
+    width: 32px;
+    height: 32px;
+}
+
+.invite-icon-mobile {
+    font-size: 14px;
+}
+
+.notification-dropdown {
+    width: 320px;
+    max-width: 90vw;
+    z-index: 1050;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+}
+
+.notification-dropdown.mobile {
+    width: 280px;
+}
+
+.notification-list {
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.notification-avatar {
+    width: 32px;
+    height: 32px;
+}
+
+.notification-time {
+    font-size: 0.75rem;
+}
+
+.user-profile-pill {
+    cursor: pointer;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    padding: 8px 16px;
+    border-radius: 50rem;
+    transition: all 0.2s ease;
+}
+
+.user-profile-pill:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.user-profile-pill.mobile {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.user-avatar-small {
+    width: 24px;
+    height: 24px;
+}
+
+.user-avatar-small.mobile {
+    width: 32px;
+    height: 32px;
+}
+
+.user-icon-placeholder {
+    width: 24px;
+    height: 24px;
+    background-color: var(--border);
+    color: var(--text-muted);
+}
+
+.user-icon-placeholder.mobile {
+    width: 32px;
+    height: 32px;
+}

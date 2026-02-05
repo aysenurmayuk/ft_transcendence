@@ -1,0 +1,20 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Python / Django
+__pycache__/
+*.pyc
+*.pyo
+db.sqlite3
+.env
+venv/
+env/
+
+# System
+.DS_Store
+
+# Build
+build/
+dist/

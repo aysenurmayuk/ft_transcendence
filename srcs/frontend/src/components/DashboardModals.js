@@ -93,6 +93,18 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 		setChecklistItems(checklistItems.filter((_, i) => i !== index));
 	};
 
+	const toggleAssignee = (memberId) => {
+		if (memberId === 'everyone') {
+			setAssignees([]);
+		} else {
+			if (assignees.includes(memberId)) {
+				setAssignees(prev => prev.filter(id => id !== memberId));
+			} else {
+				setAssignees(prev => [...prev, memberId]);
+			}
+		}
+	};
+
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		const token = localStorage.getItem('token');
@@ -105,7 +117,7 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 		};
 
 		if (taskType === 'assignment') {
-			if (assignedTo) payload.assigned_to_id = assignedTo;
+			if (assignees.length > 0) payload.assignee_ids = assignees;
 		} else if (taskType === 'checklist') {
 			payload.checklist_items = checklistItems;
 		}
@@ -124,7 +136,7 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 				setTitle('');
 				setDescription('');
 				setChecklistItems([]);
-				setAssignedTo('');
+				setAssignees([]);
 				onSuccess();
 				onClose();
 			} else {
@@ -143,8 +155,8 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 			setTitle('');
 			setDescription('');
 			setChecklistItems([]);
-			if (initialAssignee) setAssignedTo(initialAssignee);
-			else setAssignedTo('');
+			if (initialAssignee) setAssignees([Number(initialAssignee)]);
+			else setAssignees([]);
 		}
 	}, [isOpen, initialAssignee]);
 
@@ -199,9 +211,23 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 						>
 							<option value="">-- Everyone --</option>
 							{members.map(m => (
-								<option key={m.id} value={m.id}>{m.username}</option>
+								<div key={m.id} onClick={() => toggleAssignee(m.id)} style={{
+									display: 'flex', alignItems: 'center', gap: '10px', padding: '6px',
+									cursor: 'pointer', borderRadius: '4px',
+									background: assignees.includes(m.id) ? 'rgba(99, 102, 241, 0.2)' : 'transparent'
+								}}>
+									<div style={{
+										width: '18px', height: '18px', borderRadius: '4px', border: '2px solid #6366f1',
+										display: 'grid', placeItems: 'center',
+										background: assignees.includes(m.id) ? '#6366f1' : 'transparent'
+									}}>
+										{assignees.includes(m.id) && <span style={{ fontSize: '12px', color: '#fff' }}>✓</span>}
+									</div>
+									<span style={{ color: '#cbd5e1' }}>{m.username}</span>
+								</div>
 							))}
-						</select>
+						</div>
+						<small style={{ color: '#64748b', marginTop: '4px', display: 'block' }}>Select specific members or choose Everyone.</small>
 					</div>
 				)}
 
@@ -297,14 +323,55 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 		if (task) {
 			setEditTitle(task.title);
 			setEditDescription(task.description);
+			setEditChecklistItems(task.checklist_items ? JSON.parse(JSON.stringify(task.checklist_items)) : []);
+			// Map assignees objects to IDs
+			setEditAssignees(task.assignees ? task.assignees.map(u => u.id) : []);
 			setIsEditing(false);
 		}
 	}, [task, isOpen]);
 
 	if (!task) return null;
 
+	const handleChecklistChange = (index, value) => {
+		const newItems = [...editChecklistItems];
+		newItems[index] = { ...newItems[index], content: value };
+		setEditChecklistItems(newItems);
+	};
+
+	const removeEditChecklistItem = (index) => {
+		setEditChecklistItems(editChecklistItems.filter((_, i) => i !== index));
+	};
+
+	const addEditChecklistItem = () => {
+		setEditChecklistItems([...editChecklistItems, { content: '', is_checked: false }]);
+	};
+
+	const toggleEditAssignee = (memberId) => {
+		if (memberId === 'everyone') {
+			setEditAssignees([]);
+		} else {
+			if (editAssignees.includes(memberId)) {
+				setEditAssignees(prev => prev.filter(id => id !== memberId));
+			} else {
+				setEditAssignees(prev => [...prev, memberId]);
+			}
+		}
+	};
+
 	const handleSave = async () => {
 		const token = localStorage.getItem('token');
+
+		const payload = {
+			title: editTitle,
+			description: editDescription
+		};
+
+		if (task.task_type === 'checklist') {
+			payload.checklist_items = editChecklistItems;
+		} else if (task.task_type === 'assignment') {
+			payload.assignee_ids = editAssignees;
+		}
+
 		try {
 			const res = await fetch(`/api/tasks/${task.id}/`, {
 				method: 'PATCH',
@@ -312,10 +379,7 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 					'Content-Type': 'application/json',
 					'Authorization': `Token ${token}`
 				},
-				body: JSON.stringify({
-					title: editTitle,
-					description: editDescription
-				})
+				body: JSON.stringify(payload)
 			});
 			if (res.ok) {
 				onUpdate();
@@ -343,8 +407,9 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 		} catch (e) { console.error(e); }
 	};
 
-	const completeTask = async () => {
+	const toggleTaskStatus = async () => {
 		const token = localStorage.getItem('token');
+		const newStatus = task.status === 'done' ? 'todo' : 'done';
 		try {
 			const res = await fetch(`/api/tasks/${task.id}/`, {
 				method: 'PATCH',
@@ -352,7 +417,7 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 					'Content-Type': 'application/json',
 					'Authorization': `Token ${token}`
 				},
-				body: JSON.stringify({ status: 'done' })
+				body: JSON.stringify({ status: newStatus })
 			});
 			if (res.ok) onUpdate();
 		} catch (e) { console.error(e); }

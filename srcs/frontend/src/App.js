@@ -16,6 +16,28 @@ function MainLayout() {
 		navigate('/dashboard');
 	};
 
+	// Handle OAuth callback
+	React.useEffect(() => {
+		const urlParams = new URLSearchParams(window.location.search);
+		const oauthToken = urlParams.get('oauth_token');
+		const userId = urlParams.get('user_id');
+		const username = urlParams.get('username');
+		const oauthError = urlParams.get('oauth_error');
+
+		if (oauthToken && userId && username) {
+			// Save OAuth token and user data
+			localStorage.setItem('token', oauthToken);
+			localStorage.setItem('user', JSON.stringify({ id: userId, username: username }));
+
+			// Clean URL and redirect to dashboard
+			window.history.replaceState({}, document.title, '/');
+			navigate('/dashboard');
+		} else if (oauthError) {
+			alert('Google authentication failed: ' + oauthError);
+			window.history.replaceState({}, document.title, '/');
+		}
+	}, [navigate]);
+
 	return (
 		<>
 			<Navbar

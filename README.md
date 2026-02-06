@@ -9,6 +9,7 @@ Basit bir web uygulaması Docker Compose ile çalışır.
 - **Database**: PostgreSQL
 - **Redis**: Cache/Queue
 - **Caddy**: Reverse Proxy + SSL (Port 80/443)
+- **Google OAuth**: ✅ Destekleniyor
 
 ## Kurulum ve Çalıştırma
 

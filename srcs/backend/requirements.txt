@@ -9,3 +9,5 @@ daphne>=4.0
 djangorestframework>=3.14
 django-cors-headers>=4.0
 Pillow>=9.0
+social-auth-app-django>=5.0
+social-auth-core>=4.3

@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CircleViewSet, TaskViewSet, RegisterView, LoginView, MessageViewSet, ProfileView, DirectMessageViewSet
+from .views import CircleViewSet, TaskViewSet, RegisterView, LoginView, MessageViewSet, ProfileView, DirectMessageViewSet, GoogleLoginCallback
 
 router = DefaultRouter()
 router.register(r'circles', CircleViewSet)
@@ -13,4 +13,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('auth/register/', RegisterView.as_view()),
     path('auth/login/', LoginView.as_view()),
+    path('auth/google/callback/', GoogleLoginCallback.as_view(), name='google-callback'),
 ]

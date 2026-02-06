@@ -32,6 +32,13 @@ export const LoginModal = ({ isOpen, onClose, onSuccess }) => {
 		}
 	};
 
+	const handleGoogleLogin = () => {
+		// Redirect to backend Google OAuth endpoint
+		// Using full protocol://host to ensure proper redirect
+		const backendUrl = window.location.origin;
+		window.location.href = `${backendUrl}/auth/login/google-oauth2/`;
+	};
+
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} title="Welcome Back">
 			<form className="auth-form" onSubmit={handleSubmit}>
@@ -62,7 +69,7 @@ export const LoginModal = ({ isOpen, onClose, onSuccess }) => {
 					<span>or continue with</span>
 				</div>
 
-				<button type="button" className="google-btn">
+				<button type="button" className="google-btn" onClick={handleGoogleLogin}>
 					<img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" width="20" />
 					Google
 				</button>
@@ -113,6 +120,13 @@ export const RegisterModal = ({ isOpen, onClose }) => {
 		} catch (err) {
 			setError('Network error');
 		}
+	};
+
+	const handleGoogleRegister = () => {
+		// Google OAuth works for both login and register
+		// The backend will create a new user if it doesn't exist
+		const backendUrl = window.location.origin;
+		window.location.href = `${backendUrl}/auth/login/google-oauth2/`;
 	};
 
 	return (
@@ -168,7 +182,7 @@ export const RegisterModal = ({ isOpen, onClose }) => {
 					<span>or continue with</span>
 				</div>
 
-				<button type="button" className="google-btn">
+				<button type="button" className="google-btn" onClick={handleGoogleRegister}>
 					<img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" width="20" />
 					Google
 				</button>

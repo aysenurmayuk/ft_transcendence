@@ -3,6 +3,10 @@ localhost {
         reverse_proxy backend:8000
     }
 
+    handle /auth/* {
+        reverse_proxy backend:8000
+    }
+
     handle /media/* {
         reverse_proxy backend:8000
     }
@@ -23,6 +27,10 @@ localhost {
         reverse_proxy backend:8000
     }
 
+    handle /auth/* {
+        reverse_proxy backend:8000
+    }
+
     handle /media/* {
         reverse_proxy backend:8000
     }
@@ -38,6 +46,10 @@ localhost {
 
 dashboard.planora.com {
     handle /api/* {
+        reverse_proxy backend:8000
+    }
+
+    handle /auth/* {
         reverse_proxy backend:8000
     }
 

@@ -117,7 +117,10 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 		};
 
 		if (taskType === 'assignment') {
-			if (assignees.length > 0) payload.assignee_ids = assignees;
+			if (assignees.length > 0) {
+				payload.assignee_ids = assignees;
+				payload.assignee_id = assignees[0];
+			}
 		} else if (taskType === 'checklist') {
 			payload.checklist_items = checklistItems;
 		}
@@ -328,7 +331,11 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 			setEditDescription(task.description);
 			setEditChecklistItems(task.checklist_items ? JSON.parse(JSON.stringify(task.checklist_items)) : []);
 			// Map assignees objects to IDs
-			setEditAssignees(task.assignees ? task.assignees.map(u => u.id) : []);
+			let ids = [];
+			if (task.assignees) ids = task.assignees.map(u => u.id);
+			else if (task.assigned_to) ids = [task.assigned_to.id];
+			
+			setEditAssignees(ids);
 			setIsEditing(false);
 		}
 	}, [task, isOpen]);
@@ -373,6 +380,7 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 			payload.checklist_items = editChecklistItems;
 		} else if (task.task_type === 'assignment') {
 			payload.assignee_ids = editAssignees;
+			if (editAssignees.length > 0) payload.assignee_id = editAssignees[0];
 		}
 
 		try {
@@ -505,7 +513,9 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 									<div className="small text-muted mb-1">
 										<i className="fa-solid fa-user me-2" style={{ fontSize: '11px' }}></i>
 										Assigned to: <span className="text-body fw-medium">
-											{task.assigned_to ? task.assigned_to.username : 'Everyone'}
+											{task.assignees && task.assignees.length > 0 
+                                                ? task.assignees.map(u => u.username).join(', ')
+                                                : (task.assigned_to ? task.assigned_to.username : 'Everyone')}
 										</span>
 									</div>
 								)}

@@ -229,7 +229,9 @@ const DashboardTasks = ({ selectedEnv, tasks, setPreselectedAssignee, setShowCre
                                             >
                                                 <i className="fa-solid fa-user task-assignee-text" style={{ fontSize: '10px' }}></i>
                                                 <span className="fw-medium task-assignee-text">
-                                                    {task.assigned_to ? task.assigned_to.username : 'Everyone'}
+                                                    {task.assignees && task.assignees.length > 0 
+                                                        ? (task.assignees.length === 1 ? task.assignees[0].username : `${task.assignees.length} Assignees`)
+                                                        : (task.assigned_to ? task.assigned_to.username : 'Everyone')}
                                                 </span>
                                             </div>
                                         )}

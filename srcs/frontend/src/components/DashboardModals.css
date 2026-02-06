@@ -225,3 +225,19 @@
     font-size: 12px;
     font-weight: 500;
 }
+/* Custom Dashed Button */
+.dashed-border-btn {
+    border-style: dashed !important;
+    border-width: 2px !important;
+    border-color: var(--primary) !important;
+    color: var(--primary) !important;
+    background: transparent !important;
+    transition: all 0.2s ease;
+}
+
+.dashed-border-btn:hover {
+    background-color: rgba(117, 54, 150, 0.1) !important;
+    border-color: var(--primary-hover) !important;
+    color: var(--primary-hover) !important;
+}
+

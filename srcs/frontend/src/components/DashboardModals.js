@@ -117,7 +117,10 @@ export const CreateTaskModal = ({ isOpen, onClose, circleId, members, onSuccess,
 		};
 
 		if (taskType === 'assignment') {
-			if (assignees.length > 0) payload.assignee_ids = assignees;
+			if (assignees.length > 0) {
+				payload.assignee_ids = assignees;
+				payload.assignee_id = assignees[0];
+			}
 		} else if (taskType === 'checklist') {
 			payload.checklist_items = checklistItems;
 		}
@@ -328,7 +331,11 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 			setEditDescription(task.description);
 			setEditChecklistItems(task.checklist_items ? JSON.parse(JSON.stringify(task.checklist_items)) : []);
 			// Map assignees objects to IDs
-			setEditAssignees(task.assignees ? task.assignees.map(u => u.id) : []);
+			let ids = [];
+			if (task.assignees) ids = task.assignees.map(u => u.id);
+			else if (task.assigned_to) ids = [task.assigned_to.id];
+
+			setEditAssignees(ids);
 			setIsEditing(false);
 		}
 	}, [task, isOpen]);
@@ -373,6 +380,7 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 			payload.checklist_items = editChecklistItems;
 		} else if (task.task_type === 'assignment') {
 			payload.assignee_ids = editAssignees;
+			if (editAssignees.length > 0) payload.assignee_id = editAssignees[0];
 		}
 
 		try {
@@ -428,7 +436,7 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 
 	const canComplete = task.task_type === 'assignment' && task.status !== 'done' && (!task.assigned_to || task.assigned_to.id === user.id);
 	const canDelete = task.created_by.id === user.id;
-	const canEdit = task.created_by.id === user.id;
+	const canEdit = true; // Allow all members to edit
 
 	return (
 		<>
@@ -445,18 +453,52 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 										onChange={e => setEditTitle(e.target.value)}
 									/>
 								</div>
-								{task.task_type !== 'checklist' && (
+								{task.task_type === 'checklist' ? (
 									<div>
-										<label className="form-label text-muted small fw-medium">
-											{task.task_type === 'note' ? 'Content' : 'Description'}
-										</label>
-										<textarea
-											className="form-control border-secondary textarea-resize-v modal-input"
-											rows="5"
-											value={editDescription}
-											onChange={e => setEditDescription(e.target.value)}
-										/>
+										<label className="form-label text-muted small fw-medium">Checklist Items</label>
+										<div className="d-flex flex-column gap-2 mb-2">
+											{editChecklistItems.map((item, idx) => (
+												<div key={idx} className="d-flex gap-2">
+													<input
+														className="form-control modal-input"
+														value={item.content}
+														onChange={e => handleChecklistChange(idx, e.target.value)}
+														placeholder="Item content"
+														style={{ borderColor: 'rgba(117, 54, 150, 0.3)' }}
+													/>
+													<button
+														type="button"
+														onClick={() => removeEditChecklistItem(idx)}
+														className="btn btn-outline-danger"
+														style={{ borderRadius: '8px' }}
+													>
+														<i className="fa-solid fa-xmark"></i>
+													</button>
+												</div>
+											))}
+										</div>
+										<button
+											type="button"
+											onClick={addEditChecklistItem}
+											className="btn btn-sm w-100 dashed-border-btn"
+										>
+											<i className="fa-solid fa-plus me-1"></i> Add New Item
+										</button>
 									</div>
+								) : (
+									task.task_type !== 'checklist' && (
+										<div>
+											<label className="form-label text-muted small fw-medium">
+												{task.task_type === 'note' ? 'Content' : 'Description'}
+											</label>
+											<textarea
+												className="form-control border-secondary textarea-resize-v modal-input"
+												rows="5"
+												value={editDescription}
+												onChange={e => setEditDescription(e.target.value)}
+											/>
+										</div>
+									)
 								)}
 							</div>
 						) : (
@@ -505,7 +547,9 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 									<div className="small text-muted mb-1">
 										<i className="fa-solid fa-user me-2" style={{ fontSize: '11px' }}></i>
 										Assigned to: <span className="text-body fw-medium">
-											{task.assigned_to ? task.assigned_to.username : 'Everyone'}
+											{task.assignees && task.assignees.length > 0
+												? task.assignees.map(u => u.username).join(', ')
+												: (task.assigned_to ? task.assigned_to.username : 'Everyone')}
 										</span>
 									</div>
 								)}

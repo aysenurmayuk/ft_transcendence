@@ -322,6 +322,7 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 	const [editTitle, setEditTitle] = useState('');
 	const [editDescription, setEditDescription] = useState('');
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+	const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
 	const [editChecklistItems, setEditChecklistItems] = useState([]);
 	const [editAssignees, setEditAssignees] = useState([]);
 
@@ -599,7 +600,7 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 									)}
 									{canComplete && (
 										<button
-											onClick={toggleTaskStatus}
+											onClick={() => setShowCompleteConfirm(true)}
 											className="btn btn-success btn-sm task-action-btn"
 										>
 											<i className="fa-solid fa-check me-1"></i>
@@ -621,6 +622,15 @@ export const TaskDetailModal = ({ isOpen, onClose, task, user, onUpdate, onDelet
 				message="Are you sure you want to delete this item? This action cannot be undone."
 				confirmText="Delete"
 				isDestructive={true}
+			/>
+
+			<ConfirmationModal
+				isOpen={showCompleteConfirm}
+				onClose={() => setShowCompleteConfirm(false)}
+				onConfirm={toggleTaskStatus}
+				title="Complete Task"
+				message="Are you sure you want to complete this task?"
+				confirmText="Complete"
 			/>
 		</>
 	);

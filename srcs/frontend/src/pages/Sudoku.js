@@ -120,6 +120,37 @@ const Sudoku = ({ circleId, showToast }) => {
 		}));
 	};
 
+	// Keyboard Support
+	useEffect(() => {
+		const handleKeyDown = (e) => {
+			if (!selectedCell) return;
+
+			// Navigation
+			if (e.key === 'ArrowUp') {
+				e.preventDefault();
+				setSelectedCell(prev => ({ ...prev, row: Math.max(0, prev.row - 1) }));
+			} else if (e.key === 'ArrowDown') {
+				e.preventDefault();
+				setSelectedCell(prev => ({ ...prev, row: Math.min(8, prev.row + 1) }));
+			} else if (e.key === 'ArrowLeft') {
+				e.preventDefault();
+				setSelectedCell(prev => ({ ...prev, col: Math.max(0, prev.col - 1) }));
+			} else if (e.key === 'ArrowRight') {
+				e.preventDefault();
+				setSelectedCell(prev => ({ ...prev, col: Math.min(8, prev.col + 1) }));
+			}
+			// Numbers and Delete
+			else if (e.key >= '1' && e.key <= '9') {
+				handleNumberInput(parseInt(e.key));
+			} else if (e.key === 'Backspace' || e.key === 'Delete') {
+				handleNumberInput(0);
+			}
+		};
+
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	}, [selectedCell, handleNumberInput]);
+
 	// Check win condition locally if board updates
 	useEffect(() => {
 		if (solution && board && board.length > 0) {

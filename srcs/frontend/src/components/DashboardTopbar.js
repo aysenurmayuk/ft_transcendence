@@ -38,8 +38,12 @@ const DashboardTopbar = ({
                     ))}
                     <li><hr className="dropdown-divider" /></li>
                     <li>
-                        <button className="dropdown-item text-primary fw-medium" onClick={() => selectEnv('create')}>
-                            <i className="fa-solid fa-plus me-2"></i> Create New Circle
+                        <button 
+                            className={`dropdown-item text-primary fw-medium d-flex align-items-center ${isMobile ? 'py-3' : ''}`} 
+                            onClick={() => selectEnv('create')}
+                        >
+                            <i className="fa-solid fa-plus me-2"></i>
+                            <span className="text-truncate">Create New Circle</span>
                         </button>
                     </li>
                     <li>

@@ -70,7 +70,7 @@ const DashboardSidebar = ({ sidebarOpen, toggleSidebar, activeView, setActiveVie
                         onClick={() => { setActiveView('sudoku'); if (isMobile) toggleSidebar(); }}
                     />
                     <SidebarLink
-                        icon={<i className="fa-solid fa-gear"></i>}
+                        icon={<i className="fa-solid fa-gears"></i>}
                         text="Settings"
                         isOpen={sidebarOpen}
                         isActive={activeView === 'settings'}
